@@ -11,6 +11,7 @@ import geocodingService from '@/services/geocoding-service';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { SearchHistory } from './search-history';
 import { SearchResults } from './search-results';
+import { useDebounce } from '@/hooks/shared/use-debounce';
 
 interface SearchBarProps {
   onLocationSelect: (location: LocationInfo) => void;
@@ -24,6 +25,9 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  
+  // Debounced query (400ms bekle)
+  const debouncedQuery = useDebounce(query, 400);
 
   // Dışarı tıklandığında dropdown'u kapat
   useEffect(() => {
@@ -37,27 +41,42 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Arama fonksiyonu
-  const handleSearch = async (searchQuery: string) => {
-    setQuery(searchQuery);
-    
-    if (searchQuery.trim().length < 3) {
-      setResults([]);
-      setIsOpen(true); // Geçmişi göster
-      return;
-    }
+  // Debounced query değiştiğinde arama yap
+  useEffect(() => {
+    const performSearch = async () => {
+      if (debouncedQuery.trim().length < 3) {
+        setResults([]);
+        setIsLoading(false);
+        return;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
+
+      try {
+        const searchResults = await geocodingService.geocode(debouncedQuery);
+        setResults(searchResults);
+      } catch (error) {
+        console.error('Arama hatası:', error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedQuery]);
+
+  // Input değiştiğinde
+  const handleInputChange = (value: string) => {
+    setQuery(value);
     setIsOpen(true);
-
-    try {
-      const searchResults = await geocodingService.geocode(searchQuery);
-      setResults(searchResults);
-    } catch (error) {
-      console.error('Arama hatası:', error);
-      setResults([]);
-    } finally {
+    
+    // 3 karakterden azsa loading'i kapat
+    if (value.trim().length < 3) {
       setIsLoading(false);
+    } else {
+      // 3+ karakter ise loading göster (debounce bitene kadar)
+      setIsLoading(true);
     }
   };
 
@@ -104,7 +123,7 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
           <input
             type="text"
             value={query}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onFocus={handleFocus}
             placeholder="Adres ara..."
             className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
