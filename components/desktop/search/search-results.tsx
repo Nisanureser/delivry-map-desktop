@@ -5,6 +5,7 @@
 
 'use client';
 
+import { memo } from 'react';
 import { MapPin, Clock } from 'lucide-react';
 import type { LocationInfo } from '@/types/geocoding.types';
 import type { SearchHistoryItem } from './search-history';
@@ -17,7 +18,7 @@ interface SearchResultsProps {
   showHistory?: boolean;
 }
 
-export function SearchResults({
+export const SearchResults = memo(function SearchResults({
   results,
   historyItems = [],
   onSelect,
@@ -136,4 +137,4 @@ export function SearchResults({
       </p>
     </div>
   );
-}
+});
