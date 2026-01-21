@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { LeafletMap } from '@/types/leaflet';
+import type { LocationInfo } from '@/types/geocoding.types';
+import { LocationPopup } from './location-popup';
+import geocodingService from '@/services/geocoding-service';
 
 const defaultCenter: [number, number] = [41.0082, 28.9784]; // İstanbul
 const defaultZoom = 12;
@@ -10,6 +13,7 @@ function MapContainer() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
 
   useEffect(() => {
     // Client-side'da çalıştığından emin ol
@@ -43,6 +47,32 @@ function MapContainer() {
             tileSize: 256,
             zoomOffset: 0,
           }).addTo(map);
+
+          // Harita tıklama eventi
+          map.on('click', async (e) => {
+            const { lat, lng } = e.latlng;
+            
+            // Loading cursor ekle
+            if (mapRef.current) {
+              mapRef.current.style.cursor = 'progress';
+            }
+
+            try {
+              // Reverse geocoding yap
+              const result = await geocodingService.reverseGeocode(lat, lng);
+
+              if (result) {
+                setSelectedLocation(result);
+              }
+            } catch (error) {
+              console.error('Konum bilgisi alınamadı:', error);
+            } finally {
+              // Loading cursor kaldır
+              if (mapRef.current) {
+                mapRef.current.style.cursor = '';
+              }
+            }
+          });
 
           mapInstanceRef.current = map;
           setError(null);
@@ -86,7 +116,24 @@ function MapContainer() {
     );
   }
 
-  return <div ref={mapRef} className="h-screen w-screen" />;
+  return (
+    <>
+      <div ref={mapRef} className="h-screen w-screen" />
+      
+      {/* Location Popup */}
+      {selectedLocation && (
+        <LocationPopup
+          location={selectedLocation}
+          onAdd={(location) => {
+            console.log('Konum eklendi:', location);
+            // Burada teslimat noktası ekleme işlemi yapılabilir
+            setSelectedLocation(null);
+          }}
+          onClose={() => setSelectedLocation(null)}
+        />
+      )}
+    </>
+  );
 }
 
 export default MapContainer;
