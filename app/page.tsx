@@ -1,8 +1,17 @@
+'use client';
+
+import dynamic from 'next/dynamic';
+import { MapLoading } from '@/components/map/map-loading';
+
+// MapContainer'ı dinamik olarak yükle, SSR'ı devre dışı bırak
+const MapContainer = dynamic(
+  () => import('@/components/map/map-container'),
+  {
+    ssr: false,
+    loading: () => <MapLoading />,
+  }
+);
+
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      {/* <Map /> */}
-      <h1>Hello World</h1>
-    </div>
-  );
+  return <MapContainer />;
 }
