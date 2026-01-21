@@ -44,7 +44,7 @@ export const SearchResults = memo(function SearchResults({
             className="w-full flex items-start gap-3 p-3 hover:bg-white/10 dark:hover:bg-black/20 transition-colors border-b border-white/10 last:border-b-0 text-left"
           >
             {/* Konum İkonu */}
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md shrink-0 mt-0.5">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md shrink-0 mt-0.5">
               <MapPin className="w-4 h-4 text-white" />
             </div>
 

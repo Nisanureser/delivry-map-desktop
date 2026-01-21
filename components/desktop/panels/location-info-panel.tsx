@@ -54,7 +54,7 @@ export function LocationInfoPanel({
       )}
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
-        <p className="text-sm text-foreground break-words">{value || '-'}</p>
+        <p className="text-sm text-foreground wrap-break-words">{value || '-'}</p>
       </div>
       {copyable && value && (
         <button
@@ -73,7 +73,7 @@ export function LocationInfoPanel({
   );
 
   return (
-    <div className="fixed left-4 top-20 z-[999] w-[400px] max-w-[calc(100vw-2rem)] animate-slide-up">
+    <div className="fixed left-4 top-20 z-999 w-[400px] max-w-[calc(100vw-2rem)] animate-slide-up">
       <div className="glass-modal rounded-2xl shadow-2xl border border-white/30 backdrop-blur-xl overflow-hidden">
         {/* Header - Minimal */}
         <div className="flex items-center justify-between p-4 border-b border-border/50 bg-muted/30">
