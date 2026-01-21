@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#6366F1"/>
+
+  <path
+    d="M14 42 C22 30, 34 36, 44 22"
+    stroke="white"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+    stroke-dasharray="6 4"
+  />
+
+  <circle cx="14" cy="42" r="4" fill="white"/>
+
+  <path
+    d="M44 14
+       C38 14, 34 18, 34 24
+       C34 32, 44 44, 44 44
+       C44 44, 54 32, 54 24
+       C54 18, 50 14, 44 14Z"
+    fill="white"
+  />
+  <circle cx="44" cy="24" r="4" fill="#6366F1"/>
+</svg>
