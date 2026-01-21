@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import type { LeafletMap } from '@/types/leaflet';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { LocationPopup } from './location-popup';
-import { SearchBar } from '@/components/desktop/search/search-bar';
-import { LocationInfoPanel } from '@/components/desktop/panels/location-info-panel';
+import { SearchBar } from '@/components/desktop/search';
 import geocodingService from '@/services/geocoding-service';
+
+// Lazy load LocationInfoPanel (sadece gerektiğinde yükle)
+const LocationInfoPanel = dynamic(
+  () => import('@/components/desktop/panels').then(mod => ({ default: mod.LocationInfoPanel })),
+  { ssr: false }
+);
 
 const defaultCenter: [number, number] = [41.0082, 28.9784]; // İstanbul
 const defaultZoom = 12;
@@ -147,7 +153,7 @@ function MapContainer() {
       <div ref={mapRef} className="h-screen w-screen" />
       
       {/* Search Bar (Desktop) */}
-      <div className="fixed top-4 left-4 z-[1000] w-96 max-w-[calc(100vw-2rem)]">
+      <div className="fixed top-4 left-4 z-1000 w-96 max-w-[calc(100vw-2rem)]">
         <SearchBar onLocationSelect={handleLocationSelect} />
       </div>
       
