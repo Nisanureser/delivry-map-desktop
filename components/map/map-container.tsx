@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { LeafletMap } from '@/types/leaflet';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { LocationPopup } from './location-popup';
+import { SearchBar } from '@/components/desktop/search/search-bar';
+import { LocationInfoPanel } from '@/components/desktop/panels/location-info-panel';
 import geocodingService from '@/services/geocoding-service';
 
 const defaultCenter: [number, number] = [41.0082, 28.9784]; // İstanbul
@@ -14,6 +16,30 @@ function MapContainer() {
   const mapInstanceRef = useRef<LeafletMap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+
+  // Arama sonucunda seçilen konuma git
+  const handleLocationSelect = (location: LocationInfo) => {
+    if (mapInstanceRef.current) {
+      const { lat, lng } = location.coordinates;
+      mapInstanceRef.current.setView([lat, lng], 16, {
+        animate: true,
+        duration: 0.5,
+      });
+      // Bilgi panelini göster
+      setSelectedLocation(location);
+      setShowInfoPanel(true);
+    }
+  };
+
+  // Konum onaylandığında
+  const handleConfirmLocation = (location: LocationInfo) => {
+    console.log('Konum onaylandı:', location);
+    // Burada teslimat noktası olarak kaydet
+    setShowInfoPanel(false);
+    // Popup'ı göster
+    // İsterseniz başka bir işlem yapabilirsiniz
+  };
 
   useEffect(() => {
     // Client-side'da çalıştığından emin ol
@@ -120,14 +146,27 @@ function MapContainer() {
     <>
       <div ref={mapRef} className="h-screen w-screen" />
       
-      {/* Location Popup */}
-      {selectedLocation && (
+      {/* Search Bar (Desktop) */}
+      <div className="fixed top-4 left-4 z-[1000] w-96 max-w-[calc(100vw-2rem)]">
+        <SearchBar onLocationSelect={handleLocationSelect} />
+      </div>
+      
+      {/* Location Info Panel (Desktop) */}
+      {showInfoPanel && selectedLocation && (
+        <LocationInfoPanel
+          location={selectedLocation}
+          onClose={() => setShowInfoPanel(false)}
+          onConfirm={handleConfirmLocation}
+          title="Teslimat Noktası"
+        />
+      )}
+      
+      {/* Location Popup (Mobile/Quick View) */}
+      {!showInfoPanel && selectedLocation && (
         <LocationPopup
           location={selectedLocation}
           onAdd={(location) => {
-            console.log('Konum eklendi:', location);
-            // Burada teslimat noktası ekleme işlemi yapılabilir
-            setSelectedLocation(null);
+            setShowInfoPanel(true);
           }}
           onClose={() => setSelectedLocation(null)}
         />
