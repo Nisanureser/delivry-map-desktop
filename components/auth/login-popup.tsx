@@ -48,7 +48,7 @@ export function LoginPopup({ isOpen, onClose }: LoginPopupProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-10000 flex items-center justify-center p-4 animate-in fade-in duration-300">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
@@ -142,7 +142,7 @@ export function LoginPopup({ isOpen, onClose }: LoginPopupProps) {
               <button
                 type="submit"
                 disabled={isSubmitting || !email || !password}
-                className="w-full mt-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-purple-600 disabled:hover:shadow-lg flex items-center justify-center gap-2"
+                className="w-full mt-6 py-2 rounded-xl bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-purple-600 disabled:hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>

@@ -29,7 +29,7 @@ export function UserButton() {
       <>
         <button
           onClick={() => setShowLoginModal(true)}
-          className="fixed top-4 right-4 z-[10000] flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm border-2 border-red-500/80 shadow-lg hover:bg-background/90 hover:border-red-500 transition-all pointer-events-auto"
+          className="fixed top-4 right-4 z-10000 flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm border-2 border-red-500/80 shadow-lg hover:bg-background/90 hover:border-red-500 transition-all pointer-events-auto"
         >
           <User className="w-4 h-4 text-foreground" />
           <span className="text-sm font-medium text-foreground">Giriş Yap</span>
@@ -54,7 +54,7 @@ export function UserButton() {
       {/* User Button */}
       <button
         onClick={() => setShowUserSheet(true)}
-        className="fixed top-4 right-4 z-[10000] flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm border-2 border-green-500/80 shadow-lg hover:bg-background/90 hover:border-green-500 transition-all pointer-events-auto"
+        className="fixed top-4 right-4 z-10000 flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm border-2 border-green-500/80 shadow-lg hover:bg-background/90 hover:border-green-500 transition-all pointer-events-auto"
       >
         <User className="w-4 h-4 text-foreground" />
         <span className="text-sm font-medium text-foreground">{truncatedName}</span>
@@ -62,7 +62,7 @@ export function UserButton() {
 
       {/* User Sheet - Sağdan açılır */}
       {showUserSheet && (
-        <div className="fixed inset-0 z-[10000] flex items-start justify-end animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-10000 flex items-start justify-end animate-in fade-in duration-300">
           {/* Backdrop - Glass overlay - %50 siyah overlay */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-[1px] animate-in fade-in duration-300"
@@ -70,7 +70,7 @@ export function UserButton() {
           />
 
           {/* Sheet Panel - Sağdan açılır, daha dar - Okunur vaziyette */}
-          <div className="relative w-[280px] sm:w-[320px] h-full rounded-l-2xl border border-white/20 shadow-2xl p-4 z-[99999] animate-in slide-in-from-right fade-in duration-300 backdrop-blur-2xl bg-white/50 dark:bg-black/90">
+          <div className="relative w-[280px] sm:w-[320px] h-full rounded-l-2xl border border-white/20 shadow-2xl p-4 z-99999 animate-in slide-in-from-right fade-in duration-300 backdrop-blur-2xl bg-white/50 dark:bg-black/90">
             <div className="flex flex-col gap-4 h-full">
               {/* Header */}
               <div className="flex items-center justify-between">
@@ -121,7 +121,7 @@ export function UserButton() {
                 {isProfileOpen && (
                   <div className="ml-6 space-y-1.5">
                     <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-sm w-full">
-                      <User className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                      <User className="w-4 h-4 text-purple-500 dark:text-purple-400 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">İsim</p>
                         <p className="text-sm font-medium text-foreground truncate">
@@ -131,7 +131,7 @@ export function UserButton() {
                     </div>
 
                     <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-sm w-full">
-                      <Mail className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                      <Mail className="w-4 h-4 text-purple-500 dark:text-purple-400 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">E-posta</p>
                         <p className="text-sm font-medium text-foreground truncate">
@@ -142,7 +142,7 @@ export function UserButton() {
 
                     {user?.phone && (
                       <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/5 dark:bg-white/5 backdrop-blur-sm w-full">
-                        <Phone className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                        <Phone className="w-4 h-4 text-purple-500 dark:text-purple-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-muted-foreground">Telefon</p>
                           <p className="text-sm font-medium text-foreground truncate">
