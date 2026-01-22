@@ -17,22 +17,22 @@ import geocodingService from '@/services/geocoding-service';
 interface UseMapClickOptions {
   onLocationSelect?: (location: LocationInfo) => void;
   mapRef?: React.RefObject<HTMLDivElement | null>;
-  markerRef?: React.MutableRefObject<L.Marker | null>;
+  onMarkerAdd?: (lat: number, lng: number) => void;
 }
 
 export function useMapClick(
   map: LeafletMap | null,
   options: UseMapClickOptions = {}
 ) {
-  const { onLocationSelect, mapRef, markerRef: externalMarkerRef } = options;
+  const { onLocationSelect, mapRef, onMarkerAdd } = options;
   const callbackRef = useRef(onLocationSelect);
-  const internalMarkerRef = useRef<L.Marker | null>(null);
-  const markerRef = externalMarkerRef || internalMarkerRef;
+  const markerCallbackRef = useRef(onMarkerAdd);
 
-  // Callback'i ref'te sakla (dependency sorununu önlemek için)
+  // Callback'leri ref'te sakla (dependency sorununu önlemek için)
   useEffect(() => {
     callbackRef.current = onLocationSelect;
-  }, [onLocationSelect]);
+    markerCallbackRef.current = onMarkerAdd;
+  }, [onLocationSelect, onMarkerAdd]);
 
   useEffect(() => {
     if (!map) return;
@@ -46,27 +46,10 @@ export function useMapClick(
         mapRef.current.style.cursor = 'progress';
       }
 
-      // Önceki marker'ı kaldır
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
+      // Marker ekleme callback'ini çağır (marker yönetimi hook'ta yapılacak)
+      if (markerCallbackRef.current) {
+        markerCallbackRef.current(lat, lng);
       }
-
-      // Yeni marker ekle (tıklanan yere) - Google Maps tarzı kırmızı marker
-      const newMarker = L.marker([lat, lng], {
-        icon: L.icon({
-          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-          iconSize: [20, 30],
-          iconAnchor: [10, 30],
-          popupAnchor: [1, -34],
-          tooltipAnchor: [0, -41],
-          shadowSize: [41, 41]
-        }),
-        draggable: false
-      }).addTo(map);
-
-      markerRef.current = newMarker;
 
       try {
         // Reverse geocoding yap
@@ -91,11 +74,6 @@ export function useMapClick(
     // Cleanup
     return () => {
       map.off('click', handleMapClick);
-      // Marker'ı temizle
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
-      }
       if (mapRef?.current) {
         mapRef.current.style.cursor = '';
       }

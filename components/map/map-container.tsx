@@ -10,15 +10,14 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import L from 'leaflet';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { LocationPopup } from './location-popup';
 import { SearchBar } from '@/components/desktop/search';
 import { LoginPopup } from '@/components/auth/login-popup';
 import { UserButton } from '@/components/auth/user-button';
-import { useMapInstance, useMapClick } from '@/hooks/map';
+import { useMapInstance, useMapClick, useMapMarker } from '@/hooks/map';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Lazy load LocationInfoPanel (sadece gerektiğinde yükle)
@@ -32,9 +31,6 @@ function MapContainer() {
   const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  
-  // Tek bir marker ref'i - hem arama hem harita tıklama için
-  const markerRef = useRef<L.Marker | null>(null);
 
   // Auth Hook
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -47,6 +43,9 @@ function MapContainer() {
     zoomControl: false,
   });
 
+  // Marker yönetimi hook'u (profesyonel yaklaşım)
+  const { addMarker, addMarkerAtCoordinates, removeMarker } = useMapMarker({ map });
+
   // Harita tıklama eventini dinle (auth kontrolü ile)
   useMapClick(map, {
     onLocationSelect: (location) => {
@@ -58,7 +57,10 @@ function MapContainer() {
       setSelectedLocation(location);
     },
     mapRef,
-    markerRef: markerRef, // Aynı marker ref'ini kullan
+    onMarkerAdd: (lat, lng) => {
+      // Marker ekle (hook üzerinden)
+      addMarkerAtCoordinates(lat, lng);
+    },
   });
 
   // Arama sonucunda seçilen konuma git (auth kontrolü ile)
@@ -78,27 +80,8 @@ function MapContainer() {
         duration: 0.5,
       });
 
-      // Önceki marker'ı kaldır (hem arama hem harita tıklama marker'ı için aynı ref)
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
-      }
-
-      // Yeni marker ekle (arama sonucu için - aynı ref kullanılıyor)
-      const newMarker = L.marker([lat, lng], {
-        icon: L.icon({
-          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-          iconSize: [20, 30],
-          iconAnchor: [10, 30],
-          popupAnchor: [1, -34],
-          tooltipAnchor: [0, -41],
-          shadowSize: [41, 41]
-        }),
-        draggable: false
-      }).addTo(map);
-
-      markerRef.current = newMarker;
+      // Marker ekle (hook üzerinden - otomatik olarak önceki marker kaldırılır)
+      addMarker(location);
 
       // Bilgi panelini göster
       setSelectedLocation(location);
@@ -111,11 +94,8 @@ function MapContainer() {
     console.log('Konum onaylandı:', location);
     // Burada teslimat noktası olarak kaydet
     setShowInfoPanel(false);
-    // Marker'ı kaldır (tek marker ref'i kullanılıyor)
-    if (markerRef.current && map) {
-      map.removeLayer(markerRef.current);
-      markerRef.current = null;
-    }
+    // Marker'ı kaldır (hook üzerinden)
+    removeMarker();
     setSelectedLocation(null);
     // Popup'ı göster
     // İsterseniz başka bir işlem yapabilirsiniz
@@ -125,12 +105,8 @@ function MapContainer() {
   const handleCloseLocation = () => {
     setSelectedLocation(null);
     setShowInfoPanel(false);
-    
-    // Marker'ı kaldır (tek marker ref'i - hem arama hem harita tıklama için)
-    if (markerRef.current && map) {
-      map.removeLayer(markerRef.current);
-      markerRef.current = null;
-    }
+    // Marker'ı kaldır (hook üzerinden)
+    removeMarker();
   };
 
   if (error) {
