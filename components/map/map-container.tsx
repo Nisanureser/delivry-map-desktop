@@ -17,8 +17,12 @@ import { LocationPopup } from './location-popup';
 import { SearchBar } from '@/components/desktop/search';
 import { LoginPopup } from '@/components/auth/login-popup';
 import { UserButton } from '@/components/auth/user-button';
-import { useMapInstance, useMapClick, useMapMarker } from '@/hooks/map';
+import { DesktopSidebar } from '@/components/desktop/desktop-sidebar';
+import { DeliveryPointPanel } from '@/components/desktop/delivery/delivery-point-panel';
+import { useMapInstance, useMapClick, useMapMarker, useDeliveryPointMarkers } from '@/hooks/map';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
+import { requireAuth } from '@/lib/auth-utils';
 
 // Lazy load LocationInfoPanel (sadece gerektiğinde yükle)
 const LocationInfoPanel = dynamic(
@@ -31,10 +35,12 @@ function MapContainer() {
   const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'routes' | 'data'>('routes');
+  const [isDeliveryPanelOpen, setIsDeliveryPanelOpen] = useState(false);
 
   // Auth Hook
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-
+  
   // Business Logic Hook'ları
   const { map, mapRef, error } = useMapInstance({
     center: [41.0082, 28.9784], // İstanbul
@@ -43,15 +49,38 @@ function MapContainer() {
     zoomControl: false,
   });
 
-  // Marker yönetimi hook'u (profesyonel yaklaşım)
+  // Delivery Points Hook
+  const { deliveryPoints, addDeliveryPoint } = useDeliveryPoints();
+
+  // Delivery Point Markers Hook ( marker yönetimi hook'ta)
+  useDeliveryPointMarkers({ map, deliveryPoints });
+
+  // Marker yönetimi hook'u  geçici marker için)
   const { addMarker, addMarkerAtCoordinates, removeMarker } = useMapMarker({ map });
+
+  // Sidebar tab değiştiğinde panel'i toggle et
+  const handleSidebarTabChange = (tab: 'routes' | 'data') => {
+    if (tab === 'routes') {
+      // Toggle logic: Eğer zaten routes'taysa toggle, değilse aç
+      if (activeSidebarTab === 'routes') {
+        setIsDeliveryPanelOpen((prev) => !prev);
+      } else {
+        setActiveSidebarTab('routes');
+        setIsDeliveryPanelOpen(true);
+      }
+    } else {
+      // Rota Verileri seçildiğinde kapat
+      setActiveSidebarTab('data');
+      setIsDeliveryPanelOpen(false);
+    }
+  };
+
 
   // Harita tıklama eventini dinle (auth kontrolü ile)
   useMapClick(map, {
     onLocationSelect: (location) => {
-      // Auth kontrolü
-      if (!isAuthenticated && !authLoading) {
-        setShowLoginModal(true);
+      // Auth kontrolü (utility function ile)
+      if (!requireAuth(isAuthenticated, authLoading, () => setShowLoginModal(true))) {
         return;
       }
       setSelectedLocation(location);
@@ -65,9 +94,8 @@ function MapContainer() {
 
   // Arama sonucunda seçilen konuma git (auth kontrolü ile)
   const handleLocationSelect = (location: LocationInfo) => {
-    // Auth kontrolü
-    if (!isAuthenticated && !authLoading) {
-      setShowLoginModal(true);
+    // Auth kontrolü (utility function ile)
+    if (!requireAuth(isAuthenticated, authLoading, () => setShowLoginModal(true))) {
       return;
     }
 
@@ -89,16 +117,15 @@ function MapContainer() {
     }
   };
 
-  // Konum onaylandığında (mevcut mantık korunmuştur)
+  // Konum onaylandığında - Teslimat noktasına ekle
   const handleConfirmLocation = (location: LocationInfo) => {
-    console.log('Konum onaylandı:', location);
-    // Burada teslimat noktası olarak kaydet
+    // Teslimat noktasına ekle (varsayılan öncelik: normal)
+    addDeliveryPoint(location, 'normal');
+    
     setShowInfoPanel(false);
-    // Marker'ı kaldır (hook üzerinden)
+    // Geçici marker'ı kaldır (teslimat noktası marker'ı zaten eklendi)
     removeMarker();
     setSelectedLocation(null);
-    // Popup'ı göster
-    // İsterseniz başka bir işlem yapabilirsiniz
   };
 
   // Popup/Panel kapatıldığında marker'ı kaldır
@@ -129,13 +156,25 @@ function MapContainer() {
     <>
       <div ref={mapRef} className="h-screen w-screen relative z-0" />
       
+      {/* Desktop Sidebar (Sol taraf - Navigation rail) */}
+      <DesktopSidebar 
+        activeTab={activeSidebarTab} 
+        onTabChange={handleSidebarTabChange} 
+      />
+      
       {/* User Button (Top Right) */}
       <UserButton />
       
-      {/* Search Bar (Desktop) */}
-      <div className="fixed top-4 left-4 z-1000 w-96 max-w-[calc(100vw-2rem)]">
+      {/* Search Bar (Desktop) - Sabit, sidebar'ın yanında */}
+      <div className="fixed left-20 top-4 z-1000 w-96 max-w-[calc(100vw-2rem)]">
         <SearchBar onLocationSelect={handleLocationSelect} />
       </div>
+
+      {/* Delivery Point Panel - Search bar'ın altında açılır */}
+      <DeliveryPointPanel
+        isOpen={isDeliveryPanelOpen}
+        onClose={() => setIsDeliveryPanelOpen(false)}
+      />
       
       {/* Location Info Panel (Desktop) */}
       {showInfoPanel && selectedLocation && (
@@ -152,7 +191,11 @@ function MapContainer() {
         <LocationPopup
           location={selectedLocation}
           onAdd={(location) => {
-            setShowInfoPanel(true);
+            // Teslimat noktasına ekle (varsayılan öncelik: normal)
+            addDeliveryPoint(location, 'normal');
+            // Geçici marker'ı kaldır
+            removeMarker();
+            setSelectedLocation(null);
           }}
           onClose={handleCloseLocation}
         />

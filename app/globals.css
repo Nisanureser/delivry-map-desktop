@@ -318,3 +318,9 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Delivery Point Markers */
+.delivery-point-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
