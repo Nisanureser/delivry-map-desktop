@@ -5,16 +5,32 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
 import { DeliveryPointCard } from './delivery-point-card';
+import { DeliveryPointDetailModal } from './delivery-point-detail-modal';
+import type { DeliveryPoint, Priority } from '@/types/delivery.types';
 
 export function DeliveryPointList() {
   const { deliveryPoints, removeDeliveryPoint, updateDeliveryPoint } = useDeliveryPoints();
+  const [selectedPoint, setSelectedPoint] = useState<DeliveryPoint | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Düzenleme handler'ı (şimdilik sadece console.log)
-  const handleEdit = (point: any) => {
-    console.log('Edit point:', point);
-    // TODO: Edit modal açılacak
+  // Düzenleme handler'ı
+  const handleEdit = (point: DeliveryPoint) => {
+    setSelectedPoint(point);
+    setIsModalOpen(true);
+  };
+
+  // Modal kaydetme handler'ı
+  const handleSave = (id: string, updates: { priority: Priority; notes?: string }) => {
+    updateDeliveryPoint(id, updates);
+  };
+
+  // Modal kapatma handler'ı
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedPoint(null);
   };
 
   return (
@@ -57,6 +73,14 @@ export function DeliveryPointList() {
           ))
         )}
       </div>
+
+      {/* Detail Modal */}
+      <DeliveryPointDetailModal
+        point={selectedPoint}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+      />
     </div>
   );
 }
