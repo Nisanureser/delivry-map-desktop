@@ -35,7 +35,7 @@ function MapContainer() {
   const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'routes' | 'data'>('routes');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'routes' | 'data' | null>(null);
   const [isDeliveryPanelOpen, setIsDeliveryPanelOpen] = useState(false);
 
   // Auth Hook

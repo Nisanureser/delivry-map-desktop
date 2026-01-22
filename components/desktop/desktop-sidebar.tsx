@@ -9,7 +9,7 @@
 import { Menu, BarChart3 } from 'lucide-react';
 
 interface DesktopSidebarProps {
-  activeTab: 'routes' | 'data';
+  activeTab: 'routes' | 'data' | null;
   onTabChange: (tab: 'routes' | 'data') => void;
 }
 
