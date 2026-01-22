@@ -60,8 +60,8 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
     // Callback çağır
     onLocationSelect(location);
     
-    // UI'ı güncelle
-    search.setQuery(location.posta_adresi);
+    // Input'u temizle ve dropdown'ı kapat
+    search.setQuery('');
     setIsOpen(false);
   };
 
