@@ -1,12 +1,21 @@
+/**
+ * Map Container Component
+ * Harita görüntüleme - Refactor edilmiş versiyon
+ * 
+ * Refactor Mantığı:
+ * - Leaflet initialization → useMapInstance hook
+ * - Map click handling → useMapClick hook
+ * - Component sadece UI logic ve state management
+ */
+
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import type { LeafletMap } from '@/types/leaflet';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { LocationPopup } from './location-popup';
 import { SearchBar } from '@/components/desktop/search';
-import geocodingService from '@/services/geocoding-service';
+import { useMapInstance, useMapClick } from '@/hooks/map';
 
 // Lazy load LocationInfoPanel (sadece gerektiğinde yükle)
 const LocationInfoPanel = dynamic(
@@ -14,21 +23,32 @@ const LocationInfoPanel = dynamic(
   { ssr: false }
 );
 
-const defaultCenter: [number, number] = [41.0082, 28.9784]; // İstanbul
-const defaultZoom = 12;
-
 function MapContainer() {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<LeafletMap | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // UI State (component'te kalıyor - UI logic)
   const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
 
-  // Arama sonucunda seçilen konuma git
+  // Business Logic Hook'ları
+  const { map, mapRef, error } = useMapInstance({
+    center: [41.0082, 28.9784], // İstanbul
+    zoom: 12,
+    scrollWheelZoom: true,
+    zoomControl: false,
+  });
+
+  // Harita tıklama eventini dinle (mevcut mantık korunmuştur)
+  useMapClick(map, {
+    onLocationSelect: (location) => {
+      setSelectedLocation(location);
+    },
+    mapRef,
+  });
+
+  // Arama sonucunda seçilen konuma git (mevcut mantık korunmuştur)
   const handleLocationSelect = (location: LocationInfo) => {
-    if (mapInstanceRef.current) {
+    if (map) {
       const { lat, lng } = location.coordinates;
-      mapInstanceRef.current.setView([lat, lng], 16, {
+      map.setView([lat, lng], 16, {
         animate: true,
         duration: 0.5,
       });
@@ -38,7 +58,7 @@ function MapContainer() {
     }
   };
 
-  // Konum onaylandığında
+  // Konum onaylandığında (mevcut mantık korunmuştur)
   const handleConfirmLocation = (location: LocationInfo) => {
     console.log('Konum onaylandı:', location);
     // Burada teslimat noktası olarak kaydet
@@ -46,91 +66,6 @@ function MapContainer() {
     // Popup'ı göster
     // İsterseniz başka bir işlem yapabilirsiniz
   };
-
-  useEffect(() => {
-    // Client-side'da çalıştığından emin ol
-    if (typeof window === 'undefined' || !mapRef.current) return;
-
-    // Harita zaten oluşturulmuşsa tekrar oluşturma
-    if (mapInstanceRef.current) return;
-
-    let isMounted = true;
-
-    // Leaflet'i dinamik olarak import et (sadece client-side'da)
-    import('leaflet')
-      .then((L) => {
-        // Component unmount olmuşsa işlemi durdur
-        if (!isMounted || !mapRef.current || mapInstanceRef.current) return;
-
-        try {
-          // Leaflet haritasını oluştur
-          const map = L.default.map(mapRef.current, {
-            center: defaultCenter,
-            zoom: defaultZoom,
-            scrollWheelZoom: true,
-            zoomControl: false, // +/- zoom kontrollerini kaldır
-          });
-
-          // OpenStreetMap tile layer ekle
-          L.default.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
-            tileSize: 256,
-            zoomOffset: 0,
-          }).addTo(map);
-
-          // Harita tıklama eventi
-          map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            
-            // Loading cursor ekle
-            if (mapRef.current) {
-              mapRef.current.style.cursor = 'progress';
-            }
-
-            try {
-              // Reverse geocoding yap
-              const result = await geocodingService.reverseGeocode(lat, lng);
-
-              if (result) {
-                setSelectedLocation(result);
-              }
-            } catch (error) {
-              console.error('Konum bilgisi alınamadı:', error);
-            } finally {
-              // Loading cursor kaldır
-              if (mapRef.current) {
-                mapRef.current.style.cursor = '';
-              }
-            }
-          });
-
-          mapInstanceRef.current = map;
-          setError(null);
-        } catch (err) {
-          console.error('Harita oluşturma hatası:', err);
-          setError('Harita yüklenirken bir hata oluştu');
-        }
-      })
-      .catch((err) => {
-        console.error('Leaflet yükleme hatası:', err);
-        setError('Harita kütüphanesi yüklenemedi');
-      });
-
-    // Cleanup
-    return () => {
-      isMounted = false;
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.remove();
-        } catch (err) {
-          console.error('Harita temizleme hatası:', err);
-        }
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
 
   if (error) {
     return (
