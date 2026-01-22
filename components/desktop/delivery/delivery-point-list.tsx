@@ -40,7 +40,7 @@ export function DeliveryPointList() {
         {deliveryPoints.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             {/* Empty State Icon */}
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-linear-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center mb-4">
               <svg
                 className="w-8 h-8 text-purple-500 dark:text-purple-400"
                 fill="none"
