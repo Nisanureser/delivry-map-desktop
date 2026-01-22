@@ -15,7 +15,10 @@ import dynamic from 'next/dynamic';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { LocationPopup } from './location-popup';
 import { SearchBar } from '@/components/desktop/search';
+import { LoginPopup } from '@/components/auth/login-popup';
+import { UserButton } from '@/components/auth/user-button';
 import { useMapInstance, useMapClick } from '@/hooks/map';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Lazy load LocationInfoPanel (sadece gerektiğinde yükle)
 const LocationInfoPanel = dynamic(
@@ -27,6 +30,10 @@ function MapContainer() {
   // UI State (component'te kalıyor - UI logic)
   const [selectedLocation, setSelectedLocation] = useState<LocationInfo | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Auth Hook
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Business Logic Hook'ları
   const { map, mapRef, error } = useMapInstance({
@@ -36,16 +43,27 @@ function MapContainer() {
     zoomControl: false,
   });
 
-  // Harita tıklama eventini dinle (mevcut mantık korunmuştur)
+  // Harita tıklama eventini dinle (auth kontrolü ile)
   useMapClick(map, {
     onLocationSelect: (location) => {
+      // Auth kontrolü
+      if (!isAuthenticated && !authLoading) {
+        setShowLoginModal(true);
+        return;
+      }
       setSelectedLocation(location);
     },
     mapRef,
   });
 
-  // Arama sonucunda seçilen konuma git (mevcut mantık korunmuştur)
+  // Arama sonucunda seçilen konuma git (auth kontrolü ile)
   const handleLocationSelect = (location: LocationInfo) => {
+    // Auth kontrolü
+    if (!isAuthenticated && !authLoading) {
+      setShowLoginModal(true);
+      return;
+    }
+
     if (map) {
       const { lat, lng } = location.coordinates;
       map.setView([lat, lng], 16, {
@@ -85,7 +103,10 @@ function MapContainer() {
 
   return (
     <>
-      <div ref={mapRef} className="h-screen w-screen" />
+      <div ref={mapRef} className="h-screen w-screen relative z-0" />
+      
+      {/* User Button (Top Right) */}
+      <UserButton />
       
       {/* Search Bar (Desktop) */}
       <div className="fixed top-4 left-4 z-1000 w-96 max-w-[calc(100vw-2rem)]">
@@ -112,6 +133,12 @@ function MapContainer() {
           onClose={() => setSelectedLocation(null)}
         />
       )}
+
+      {/* Login Modal */}
+      <LoginPopup
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
     </>
   );
 }

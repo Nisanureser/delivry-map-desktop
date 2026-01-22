@@ -14,8 +14,10 @@ import { Search, X, Loader2 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { SearchResults } from './search-results';
+import { LoginPopup } from '@/components/auth/login-popup';
 import { useSearch, useSearchHistory } from '@/hooks/search';
 import { useClickOutside } from '@/hooks/shared/use-click-outside';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SearchBarProps {
   onLocationSelect: (location: LocationInfo) => void;
@@ -25,7 +27,11 @@ interface SearchBarProps {
 export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) {
   // UI State (sadece dropdown açık/kapalı)
   const [isOpen, setIsOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Auth Hook
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Business Logic Hook'ları
   const search = useSearch();
@@ -42,6 +48,12 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
 
   // Sonuç seçildiğinde
   const handleSelectLocation = (location: LocationInfo) => {
+    // Auth kontrolü - sonuç seçildiğinde
+    if (!isAuthenticated && !authLoading) {
+      setShowLoginModal(true);
+      return;
+    }
+
     // Geçmişe ekle
     history.addToHistory(location, search.query);
     
@@ -61,12 +73,21 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
 
   // Input focus olduğunda
   const handleFocus = () => {
+    // Auth kontrolü - focus olduğunda
+    if (!isAuthenticated && !authLoading) {
+      setShowLoginModal(true);
+      return;
+    }
     setIsOpen(true);
     if (search.query.length < 3) {
       // Geçmişi yeniden yükle
       history.refreshHistory();
     }
   };
+
+  // Arama yapıldığında auth kontrolü (useSearch hook'unda kontrol edilemez, burada yapıyoruz)
+  // useSearch hook'u içinde auth kontrolü yapmak için bir mekanizma ekleyebiliriz
+  // Şimdilik sonuç seçildiğinde kontrol ediyoruz
 
   return (
     <div ref={searchRef} className={`relative ${className}`}>
@@ -114,6 +135,12 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
           </div>
         )}
       </div>
+
+      {/* Login Modal */}
+      <LoginPopup
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
     </div>
   );
 }
