@@ -34,7 +34,7 @@ const priorityOptions: { value: Priority; label: string; icon: typeof AlertCircl
     value: 'low',
     label: 'Düşük',
     icon: Info,
-    color: 'bg-blue-500/15 text-blue-500 dark:text-blue-400 border-blue-500/40',
+    color: 'bg-green-500/15 text-green-500 dark:text-green-400 border-green-500/40',
   },
 ];
 

@@ -46,7 +46,7 @@ export function useDeliveryPointMarkers({
       const priorityColors: Record<string, string> = {
         high: '#ef4444', // red
         normal: '#f97316', // orange
-        low: '#3b82f6', // blue
+        low: '#22c55e', // green
       };
       const color = priorityColors[point.priority] || priorityColors.normal;
 
