@@ -111,6 +111,18 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
     }
   };
 
+  // Geçmiş öğesini sil
+  const handleRemoveItem = (id: string) => {
+    SearchHistory.remove(id);
+    setHistoryItems(SearchHistory.getAll());
+  };
+
+  // Tüm geçmişi temizle
+  const handleClearAll = () => {
+    SearchHistory.clear();
+    setHistoryItems([]);
+  };
+
   return (
     <div ref={searchRef} className={`relative ${className}`}>
       {/* Arama Kutusu */}
@@ -149,6 +161,8 @@ export function SearchBar({ onLocationSelect, className = '' }: SearchBarProps) 
               results={results}
               historyItems={historyItems}
               onSelect={handleSelectLocation}
+              onRemoveItem={handleRemoveItem}
+              onClearAll={handleClearAll}
               isLoading={isLoading}
               showHistory={query.length < 3}
             />
