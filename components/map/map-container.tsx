@@ -18,7 +18,7 @@ import { SearchBar } from '@/components/desktop/search';
 import { LoginPopup } from '@/components/auth/login-popup';
 import { UserButton } from '@/components/auth/user-button';
 import { DesktopSidebar } from '@/components/desktop/desktop-sidebar';
-import { DeliveryPointPanel } from '@/components/desktop/delivery/delivery-point-panel';
+import { DeliveryPointPanel } from '@/components/desktop/panels/delivery-point-panel';
 import { useMapInstance, useMapClick, useMapMarker, useDeliveryPointMarkers } from '@/hooks/map';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';

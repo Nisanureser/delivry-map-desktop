@@ -6,7 +6,7 @@
 'use client';
 
 import { X, ArrowUpDown } from 'lucide-react';
-import { DeliveryPointList } from './delivery-point-list';
+import { DeliveryPointList } from '../delivery/delivery-point-list';
 
 interface DeliveryPointPanelProps {
   isOpen: boolean;
