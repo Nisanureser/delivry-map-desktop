@@ -23,7 +23,7 @@ interface RouteDrawButtonProps {
 
 export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps) {
   const { deliveryPoints } = useDeliveryPoints();
-  const { isDrawing, error, drawRoute, routeInfo } = useRouteDrawing({
+  const { isDrawing, error, drawRoute, clearRoute, routeInfo } = useRouteDrawing({
     map,
     deliveryPoints,
     enabled: true,
@@ -38,11 +38,19 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
 
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // En az 2 teslimat noktası varsa buton aktif
-  const isDisabled = deliveryPoints.length < 2 || isDrawing;
+  // En az 2 teslimat noktası varsa buton aktif (rota varsa da aktif - kapatmak için)
+  const isDisabled = (deliveryPoints.length < 2 && !routeInfo) || isDrawing;
 
+  // Toggle mantığı: Rota varsa kapat, yoksa çiz
   const handleClick = async () => {
-    if (isDisabled) return;
+    // Eğer rota çizilmişse kapat
+    if (routeInfo) {
+      clearRoute();
+      return;
+    }
+
+    // Rota yoksa ve yeterli nokta varsa çiz
+    if (deliveryPoints.length < 2 || isDrawing) return;
     await drawRoute();
   };
 
@@ -73,7 +81,13 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
                 : 'bg-green-500 hover:bg-green-600 active:bg-green-700 cursor-pointer hover:scale-105 active:scale-95'
             }
           `}
-          title={deliveryPoints.length < 2 ? 'En az 2 teslimat noktası gerekli' : 'Önerilen Rota Çiz'}
+          title={
+            deliveryPoints.length < 2 && !routeInfo
+              ? 'En az 2 teslimat noktası gerekli'
+              : routeInfo
+              ? 'Rotayı Kapat'
+              : 'Önerilen Rota Çiz'
+          }
         >
           {isDrawing ? (
             <Loader2 className="w-6 h-6 text-white animate-spin" />
