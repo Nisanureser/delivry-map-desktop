@@ -74,7 +74,7 @@ export function RoutePills() {
   }
 
   return (
-    <div className="fixed top-4 left-[calc(5rem+24rem+3rem)] right-[calc(12rem+2.5rem)] z-1000 flex items-center gap-2">
+    <div className="fixed top-4 left-[calc(5rem+24rem+3rem)] right-58 z-1000 flex items-center gap-2">
       {/* Sol ok butonu */}
       {canScrollLeft && (
         <button
