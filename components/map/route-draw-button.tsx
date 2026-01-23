@@ -7,22 +7,34 @@
 'use client';
 
 import { Send, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouteDrawing } from '@/hooks/routing';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
 import type { LeafletMap } from '@/types/leaflet';
 
 interface RouteDrawButtonProps {
   map: LeafletMap | null;
+  onRouteInfoChange?: (routeInfo: {
+    distance: string;
+    duration: string;
+    summary: string;
+  } | null) => void;
 }
 
-export function RouteDrawButton({ map }: RouteDrawButtonProps) {
+export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps) {
   const { deliveryPoints } = useDeliveryPoints();
   const { isDrawing, error, drawRoute, routeInfo } = useRouteDrawing({
     map,
     deliveryPoints,
     enabled: true,
   });
+
+  // RouteInfo değiştiğinde parent'a bildir
+  useEffect(() => {
+    if (onRouteInfoChange) {
+      onRouteInfoChange(routeInfo);
+    }
+  }, [routeInfo, onRouteInfoChange]);
 
   const [showTooltip, setShowTooltip] = useState(false);
 

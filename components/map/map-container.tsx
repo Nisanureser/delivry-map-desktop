@@ -19,6 +19,7 @@ import { LoginPopup } from '@/components/auth/login-popup';
 import { UserButton } from '@/components/auth/user-button';
 import { DesktopSidebar } from '@/components/desktop/desktop-sidebar';
 import { DeliveryPointPanel } from '@/components/desktop/panels/delivery-point-panel';
+import { RouteInfoPanel } from '@/components/desktop/panels/route-info-panel';
 import { useMapInstance, useMapClick, useMapMarker, useDeliveryPointMarkers } from '@/hooks/map';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
@@ -38,6 +39,12 @@ function MapContainer() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'routes' | 'data' | null>(null);
   const [isDeliveryPanelOpen, setIsDeliveryPanelOpen] = useState(false);
+  const [isRouteInfoPanelOpen, setIsRouteInfoPanelOpen] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{
+    distance: string;
+    duration: string;
+    summary: string;
+  } | null>(null);
 
   // Auth Hook
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -68,11 +75,17 @@ function MapContainer() {
       } else {
         setActiveSidebarTab('routes');
         setIsDeliveryPanelOpen(true);
+        setIsRouteInfoPanelOpen(false);
       }
     } else {
-      // Rota Verileri seçildiğinde kapat
-      setActiveSidebarTab('data');
-      setIsDeliveryPanelOpen(false);
+      // Rota Verileri seçildiğinde RouteInfoPanel'i aç/kapat
+      if (activeSidebarTab === 'data') {
+        setIsRouteInfoPanelOpen((prev) => !prev);
+      } else {
+        setActiveSidebarTab('data');
+        setIsRouteInfoPanelOpen(true);
+        setIsDeliveryPanelOpen(false);
+      }
     }
   };
 
@@ -176,6 +189,14 @@ function MapContainer() {
         isOpen={isDeliveryPanelOpen}
         onClose={() => setIsDeliveryPanelOpen(false)}
       />
+
+      {/* Route Info Panel - Rota Verileri tab'ında açılır */}
+      <RouteInfoPanel
+        isOpen={isRouteInfoPanelOpen}
+        onClose={() => setIsRouteInfoPanelOpen(false)}
+        map={map}
+        routeInfo={routeInfo}
+      />
       
       {/* Location Info Panel (Desktop) */}
       {showInfoPanel && selectedLocation && (
@@ -209,7 +230,10 @@ function MapContainer() {
       />
 
       {/* Route Draw Button - Sağ alt köşe */}
-      <RouteDrawButton map={map} />
+      <RouteDrawButton 
+        map={map} 
+        onRouteInfoChange={setRouteInfo}
+      />
     </>
   );
 }
