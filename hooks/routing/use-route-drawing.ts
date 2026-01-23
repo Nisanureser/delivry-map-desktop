@@ -16,6 +16,7 @@ import type { LeafletMap } from '@/types/leaflet';
 import type { DeliveryPoint } from '@/types/delivery.types';
 import routeService from '@/services/route-service';
 import { decodePolyline } from '@/lib/polyline-utils';
+import { useDebounce } from '@/hooks/shared/use-debounce';
 
 interface UseRouteDrawingOptions {
   map: LeafletMap | null;
@@ -45,6 +46,7 @@ export function useRouteDrawing({
   const [routeInfo, setRouteInfo] = useState<UseRouteDrawingReturn['routeInfo']>(null);
   
   const polylineRef = useRef<L.Polyline | null>(null);
+  const hasRouteDrawnRef = useRef<boolean>(false); // Rota çizilmiş mi takibi
 
   // Rota çiz
   const drawRoute = useCallback(async () => {
@@ -108,11 +110,13 @@ export function useRouteDrawing({
       // Rota bilgilerini kaydet
       const summary = routeService.formatRouteSummary(route);
       setRouteInfo(summary);
+      hasRouteDrawnRef.current = true; // Rota başarıyla çizildi
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Rota çizilirken hata oluştu';
       setError(errorMessage);
       console.error('Route drawing error:', err);
+      hasRouteDrawnRef.current = false; // Hata durumunda false
     } finally {
       setIsDrawing(false);
     }
@@ -126,7 +130,54 @@ export function useRouteDrawing({
     }
     setRouteInfo(null);
     setError(null);
+    hasRouteDrawnRef.current = false; // Rota temizlendi
   }, [map]);
+
+  // Debounce: deliveryPoints değişikliklerini 500ms geciktir
+  // (Kısa sürede birden fazla silme işlemi olursa tek bir API çağrısı yap)
+  const debouncedDeliveryPoints = useDebounce(deliveryPoints, 500);
+  
+  // DeliveryPoints'in ID'lerini string olarak track et (değişiklikleri algılamak için)
+  const deliveryPointsIds = debouncedDeliveryPoints.map(p => p.id).join(',');
+  const prevDeliveryPointsIdsRef = useRef<string>('');
+  const isInitialMountRef = useRef<boolean>(true);
+
+  // Akıllı Otomatik Yeniden Hesaplama
+  // Teslimat noktaları değiştiğinde otomatik kontrol yap
+  useEffect(() => {
+    // Hook disabled ise veya map yoksa çalışma
+    if (!enabled || !map) return;
+
+    // İlk mount'ta çalışma (sadece değişikliklerde çalış)
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      prevDeliveryPointsIdsRef.current = deliveryPointsIds;
+      return;
+    }
+
+    // Değişiklik yoksa çalışma
+    if (deliveryPointsIds === prevDeliveryPointsIdsRef.current) {
+      return;
+    }
+
+    // Önceki ID'leri güncelle
+    prevDeliveryPointsIdsRef.current = deliveryPointsIds;
+
+    // Rota çizilmişse ve nokta sayısı >= 2 ise otomatik yeniden hesapla
+    if (hasRouteDrawnRef.current && debouncedDeliveryPoints.length >= 2) {
+      console.log('🔄 Otomatik rota yeniden hesaplanıyor...', {
+        noktaSayisi: debouncedDeliveryPoints.length,
+        noktalar: debouncedDeliveryPoints.map(p => p.order)
+      });
+      drawRoute();
+    }
+    // Rota çizilmişse ama nokta sayısı < 2 ise rotayı temizle (API çağrısı yok)
+    else if (hasRouteDrawnRef.current && debouncedDeliveryPoints.length < 2) {
+      console.log(' Rota temizleniyor (yeterli nokta yok)...');
+      clearRoute();
+    }
+    // Rota çizilmemişse hiçbir şey yapma (kullanıcı manuel butona basacak)
+  }, [deliveryPointsIds, debouncedDeliveryPoints, map, enabled, drawRoute, clearRoute]);
 
   // Cleanup: component unmount olduğunda rotayı temizle
   useEffect(() => {
