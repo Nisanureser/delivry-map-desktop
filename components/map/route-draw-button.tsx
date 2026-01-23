@@ -49,7 +49,7 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
   return (
     <>
       {/* Buton Container - Sağ alt köşe */}
-      <div className="fixed bottom-6 right-6 z-[1000] flex flex-col items-end gap-3">
+      <div className="fixed bottom-6 right-6 z-1000 flex flex-col items-end gap-3">
         {/* Tooltip */}
         {showTooltip && !isDrawing && (
           <div className="bg-gray-900 dark:bg-gray-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap animate-fade-in">
