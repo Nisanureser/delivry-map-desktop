@@ -84,17 +84,34 @@ export function useRouteDrawing({
 
       // İlk route'u al
       const route = routeData.routes[0];
-      const encodedPolyline = route.overview_polyline.points;
 
-      // Polyline'ı decode et
-      const decodedPoints = decodePolyline(encodedPolyline);
+      // Yol hizasında detaylı geometri: her leg.steps[].polyline (overview sadeleştirilmiş, sapma yapar)
+      const allPoints: [number, number][] = [];
+      for (const leg of route.legs || []) {
+        for (const step of leg.steps || []) {
+          const enc = step.polyline?.points;
+          if (!enc) continue;
+          const decoded = decodePolyline(enc);
+          // Adım/leg sınırındaki tekrarlı noktayı atla
+          if (allPoints.length > 0 && decoded.length > 0) {
+            const [la, ln] = allPoints[allPoints.length - 1];
+            const [fa, fn] = decoded[0];
+            if (la === fa && ln === fn) decoded.shift();
+          }
+          allPoints.push(...decoded);
+        }
+      }
+      const decodedPoints =
+        allPoints.length > 0 ? allPoints : decodePolyline(route.overview_polyline.points);
 
-      // Leaflet polyline oluştur
+      // Leaflet polyline: smoothFactor 1 = nokta sadeleştirme yok, yol formu korunur
       const polyline = L.polyline(decodedPoints, {
-        color: '#3b82f6', // Mavi renk
+        color: '#3b82f6',
         weight: 5,
         opacity: 0.8,
         smoothFactor: 1,
+        lineCap: 'round',
+        lineJoin: 'round',
       });
 
       // Haritaya ekle

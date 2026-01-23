@@ -15,6 +15,7 @@ export interface RouteResponse {
       duration: { text: string; value: number };
       start_address: string;
       end_address: string;
+      steps?: Array<{ polyline?: { points: string } }>;
     }>;
     summary: string;
   }>;

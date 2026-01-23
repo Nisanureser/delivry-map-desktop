@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
       url.searchParams.set('waypoints', waypointsParam);
     }
     url.searchParams.set('key', apiKey);
-    url.searchParams.set('language', 'tr'); // Türkçe yanıt
+    url.searchParams.set('language', 'tr');
+    url.searchParams.set('region', 'tr'); // Türkiye yol ağına göre rota
 
     const response = await fetch(url.toString(), {
       method: 'GET',
