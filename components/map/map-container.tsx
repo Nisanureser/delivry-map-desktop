@@ -70,9 +70,14 @@ function MapContainer() {
   // Sidebar tab değiştiğinde panel'i toggle et
   const handleSidebarTabChange = (tab: 'routes' | 'data') => {
     if (tab === 'routes') {
-      // Toggle logic: Eğer zaten routes'taysa toggle, değilse aç
       if (activeSidebarTab === 'routes') {
-        setIsDeliveryPanelOpen((prev) => !prev);
+        // Aynı tab'a tekrar tıklandı: panel açıksa kapat ve aktif tab'ı temizle
+        if (isDeliveryPanelOpen) {
+          setIsDeliveryPanelOpen(false);
+          setActiveSidebarTab(null);
+        } else {
+          setIsDeliveryPanelOpen(true);
+        }
       } else {
         setActiveSidebarTab('routes');
         setIsDeliveryPanelOpen(true);
@@ -81,7 +86,12 @@ function MapContainer() {
     } else {
       // Rota Verileri seçildiğinde RouteInfoPanel'i aç/kapat
       if (activeSidebarTab === 'data') {
-        setIsRouteInfoPanelOpen((prev) => !prev);
+        if (isRouteInfoPanelOpen) {
+          setIsRouteInfoPanelOpen(false);
+          setActiveSidebarTab(null);
+        } else {
+          setIsRouteInfoPanelOpen(true);
+        }
       } else {
         setActiveSidebarTab('data');
         setIsRouteInfoPanelOpen(true);
@@ -191,13 +201,19 @@ function MapContainer() {
       {/* Delivery Point Panel - Search bar'ın altında açılır */}
       <DeliveryPointPanel
         isOpen={isDeliveryPanelOpen}
-        onClose={() => setIsDeliveryPanelOpen(false)}
+        onClose={() => {
+          setIsDeliveryPanelOpen(false);
+          setActiveSidebarTab(null);
+        }}
       />
 
       {/* Route Info Panel - Rota Verileri tab'ında açılır */}
       <RouteInfoPanel
         isOpen={isRouteInfoPanelOpen}
-        onClose={() => setIsRouteInfoPanelOpen(false)}
+        onClose={() => {
+          setIsRouteInfoPanelOpen(false);
+          setActiveSidebarTab(null);
+        }}
         map={map}
         routeInfo={routeInfo}
       />
