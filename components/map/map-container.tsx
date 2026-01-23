@@ -20,6 +20,7 @@ import { UserButton } from '@/components/auth/user-button';
 import { DesktopSidebar } from '@/components/desktop/desktop-sidebar';
 import { DeliveryPointPanel } from '@/components/desktop/panels/delivery-point-panel';
 import { RouteInfoPanel } from '@/components/desktop/panels/route-info-panel';
+import { RoutePills } from '@/components/desktop/route/route-pills';
 import { useMapInstance, useMapClick, useMapMarker, useDeliveryPointMarkers } from '@/hooks/map';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
@@ -183,6 +184,9 @@ function MapContainer() {
       <div className="fixed left-20 top-4 z-1000 w-96 max-w-[calc(100vw-2rem)]">
         <SearchBar onLocationSelect={handleLocationSelect} />
       </div>
+
+      {/* Route Pills - Search bar ve user button arasında */}
+      <RoutePills />
 
       {/* Delivery Point Panel - Search bar'ın altında açılır */}
       <DeliveryPointPanel
