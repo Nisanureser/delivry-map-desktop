@@ -23,6 +23,7 @@ import { useMapInstance, useMapClick, useMapMarker, useDeliveryPointMarkers } fr
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
 import { requireAuth } from '@/lib/auth-utils';
+import { RouteDrawButton } from './route-draw-button';
 
 // Lazy load LocationInfoPanel (sadece gerektiğinde yükle)
 const LocationInfoPanel = dynamic(
@@ -206,6 +207,9 @@ function MapContainer() {
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
+
+      {/* Route Draw Button - Sağ alt köşe */}
+      <RouteDrawButton map={map} />
     </>
   );
 }
