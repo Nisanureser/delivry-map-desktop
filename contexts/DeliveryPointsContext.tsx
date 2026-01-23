@@ -10,7 +10,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import type { DeliveryPoint, Priority } from '@/types/delivery.types';
 import type { LocationInfo } from '@/types/geocoding.types';
 import { getPriorityOrder } from '@/constants/priorities';
@@ -99,17 +99,21 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
     setDeliveryPoints([]);
   }, []);
 
+  // Context value'yu memoize et (gereksiz re-render'ları önlemek için)
+  const contextValue = useMemo(
+    () => ({
+      deliveryPoints,
+      addDeliveryPoint,
+      removeDeliveryPoint,
+      updateDeliveryPoint,
+      getDeliveryPointsByPriority,
+      clearAll,
+    }),
+    [deliveryPoints, addDeliveryPoint, removeDeliveryPoint, updateDeliveryPoint, getDeliveryPointsByPriority, clearAll]
+  );
+
   return (
-    <DeliveryPointsContext.Provider
-      value={{
-        deliveryPoints,
-        addDeliveryPoint,
-        removeDeliveryPoint,
-        updateDeliveryPoint,
-        getDeliveryPointsByPriority,
-        clearAll,
-      }}
-    >
+    <DeliveryPointsContext.Provider value={contextValue}>
       {children}
     </DeliveryPointsContext.Provider>
   );

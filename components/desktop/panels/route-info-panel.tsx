@@ -6,6 +6,7 @@
 'use client';
 
 import { X, Route, Clock, MapPin, Navigation, Package } from 'lucide-react';
+import { useMemo } from 'react';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
 import { PRIORITY_LABELS } from '@/constants/priorities';
 import type { LeafletMap } from '@/types/leaflet';
@@ -36,13 +37,17 @@ export function RouteInfoPanel({
 
   if (!isOpen) return null;
 
-  // Öncelik dağılımını hesapla
-  const priorityCounts = deliveryPoints.reduce(
-    (acc, point) => {
-      acc[point.priority] = (acc[point.priority] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
+  // Öncelik dağılımını hesapla (useMemo ile optimize et)
+  const priorityCounts = useMemo(
+    () =>
+      deliveryPoints.reduce(
+        (acc, point) => {
+          acc[point.priority] = (acc[point.priority] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
+    [deliveryPoints]
   );
 
   // Bilgi kartı component'i
