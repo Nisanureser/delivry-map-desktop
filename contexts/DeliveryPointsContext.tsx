@@ -13,6 +13,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import type { DeliveryPoint, Priority } from '@/types/delivery.types';
 import type { LocationInfo } from '@/types/geocoding.types';
+import { getPriorityOrder } from '@/constants/priorities';
 
 interface DeliveryPointsContextType {
   deliveryPoints: DeliveryPoint[];
@@ -27,6 +28,26 @@ const DeliveryPointsContext = createContext<DeliveryPointsContextType | null>(nu
 
 export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
   const [deliveryPoints, setDeliveryPoints] = useState<DeliveryPoint[]>([]);
+
+  // Teslimat noktalarını önceliğe göre sırala ve order'ları güncelle
+  const sortAndReorderPoints = useCallback((points: DeliveryPoint[]): DeliveryPoint[] => {
+    // Önceliğe göre sırala (high -> normal -> low)
+    // Aynı öncelik içinde mevcut order'a göre sırala
+    const sorted = [...points].sort((a, b) => {
+      const priorityDiff = getPriorityOrder(a.priority) - getPriorityOrder(b.priority);
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      // Aynı öncelikte, mevcut order'a göre sırala
+      return (a.order || 0) - (b.order || 0);
+    });
+
+    // Order'ları yeniden düzenle (1'den başlayarak)
+    return sorted.map((point, index) => ({
+      ...point,
+      order: index + 1,
+    }));
+  }, []);
 
   // Teslimat noktası ekle
   const addDeliveryPoint = useCallback((location: LocationInfo, priority: Priority = 'normal') => {
@@ -43,29 +64,30 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
       placeId: location.skor, // Geçici olarak skor'u placeId olarak kullan
     };
 
-    setDeliveryPoints((prev) => [...prev, newPoint]);
-  }, [deliveryPoints.length]);
+    setDeliveryPoints((prev) => {
+      const updated = [...prev, newPoint];
+      return sortAndReorderPoints(updated);
+    });
+  }, [deliveryPoints.length, sortAndReorderPoints]);
 
   // Teslimat noktası sil
   const removeDeliveryPoint = useCallback((id: string) => {
     setDeliveryPoints((prev) => {
       const filtered = prev.filter((point) => point.id !== id);
-      // Order'ları yeniden düzenle
-      return filtered.map((point, index) => ({
-        ...point,
-        order: index + 1,
-      }));
+      return sortAndReorderPoints(filtered);
     });
-  }, []);
+  }, [sortAndReorderPoints]);
 
   // Teslimat noktası güncelle
   const updateDeliveryPoint = useCallback((id: string, updates: Partial<DeliveryPoint>) => {
-    setDeliveryPoints((prev) =>
-      prev.map((point) =>
+    setDeliveryPoints((prev) => {
+      const updated = prev.map((point) =>
         point.id === id ? { ...point, ...updates } : point
-      )
-    );
-  }, []);
+      );
+      // Öncelik değiştiyse veya her durumda sıralama yap
+      return sortAndReorderPoints(updated);
+    });
+  }, [sortAndReorderPoints]);
 
   // Önceliğe göre filtrele
   const getDeliveryPointsByPriority = useCallback((priority: Priority) => {
