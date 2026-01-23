@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { LeafletMap } from '@/types/leaflet';
 import type { DeliveryPoint } from '@/types/delivery.types';
+import { PRIORITY_MARKER_COLORS } from '@/constants/priorities';
 
 interface UseDeliveryPointMarkersOptions {
   map: LeafletMap | null;
@@ -43,12 +44,7 @@ export function useDeliveryPointMarkers({
       const order = point.order || 1;
 
       // Önceliğe göre renk belirle
-      const priorityColors: Record<string, string> = {
-        high: '#ef4444', // red
-        normal: '#f97316', // orange
-        low: '#22c55e', // green
-      };
-      const color = priorityColors[point.priority] || priorityColors.normal;
+      const color = PRIORITY_MARKER_COLORS[point.priority] || PRIORITY_MARKER_COLORS.normal;
 
       // Numaralı marker oluştur
       const marker = L.marker([lat, lng], {

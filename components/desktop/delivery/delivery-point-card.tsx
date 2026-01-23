@@ -6,7 +6,12 @@
 'use client';
 
 import { MapPin, Edit, Trash2 } from 'lucide-react';
-import type { DeliveryPoint, Priority } from '@/types/delivery.types';
+import type { DeliveryPoint } from '@/types/delivery.types';
+import {
+  PRIORITY_LABELS,
+  PRIORITY_CARD_COLORS,
+  PRIORITY_BADGE_COLORS,
+} from '@/constants/priorities';
 
 interface DeliveryPointCardProps {
   point: DeliveryPoint;
@@ -14,30 +19,12 @@ interface DeliveryPointCardProps {
   onDelete?: (id: string) => void;
 }
 
-const priorityLabels: Record<Priority, string> = {
-  high: 'Yüksek',
-  normal: 'Orta',
-  low: 'Düşük',
-};
-
-const priorityColors: Record<Priority, string> = {
-  high: 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30',
-  normal: 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30',
-  low: 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30',
-};
-
-const priorityBadgeColors: Record<Priority, string> = {
-  high: 'bg-red-500',
-  normal: 'bg-orange-500',
-  low: 'bg-green-500',
-};
-
 export function DeliveryPointCard({ point, onEdit, onDelete }: DeliveryPointCardProps) {
   return (
     <div className="group relative bg-white/10 dark:bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 dark:hover:bg-white/10 transition-all duration-200">
       <div className="flex items-start gap-3">
         {/* Sol: Numara Badge - Öncelik rengine göre */}
-        <div className={`w-6 h-6 rounded-full ${priorityBadgeColors[point.priority]} flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-md border-2 border-white`}>
+        <div className={`w-6 h-6 rounded-full ${PRIORITY_BADGE_COLORS[point.priority]} flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-md border-2 border-white`}>
           {point.order || 1}
         </div>
 
@@ -59,8 +46,8 @@ export function DeliveryPointCard({ point, onEdit, onDelete }: DeliveryPointCard
         {/* Sağ: Öncelik ve Action Buttons */}
         <div className="flex flex-col items-end gap-2 shrink-0">
           {/* Öncelik Etiketi */}
-          <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${priorityColors[point.priority]}`}>
-            {priorityLabels[point.priority]}
+          <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${PRIORITY_CARD_COLORS[point.priority]}`}>
+            {PRIORITY_LABELS[point.priority]}
           </span>
           
           {/* Action Buttons */}

@@ -6,9 +6,10 @@
 
 'use client';
 
-import { X, Check, MapPin, AlertCircle, AlertTriangle, Info, FileText } from 'lucide-react';
+import { X, Check, MapPin, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { DeliveryPoint, Priority } from '@/types/delivery.types';
+import { PRIORITY_OPTIONS } from '@/constants/priorities';
 
 interface DeliveryPointDetailModalProps {
   point: DeliveryPoint | null;
@@ -16,27 +17,6 @@ interface DeliveryPointDetailModalProps {
   onClose: () => void;
   onSave: (id: string, updates: { priority: Priority; notes?: string }) => void;
 }
-
-const priorityOptions: { value: Priority; label: string; icon: typeof AlertCircle; color: string }[] = [
-  {
-    value: 'high',
-    label: 'Yüksek',
-    icon: AlertCircle,
-    color: 'bg-red-500/15 text-red-500 dark:text-red-400 border-red-500/40',
-  },
-  {
-    value: 'normal',
-    label: 'Orta',
-    icon: AlertTriangle,
-    color: 'bg-orange-500/15 text-orange-500 dark:text-orange-400 border-orange-500/40',
-  },
-  {
-    value: 'low',
-    label: 'Düşük',
-    icon: Info,
-    color: 'bg-green-500/15 text-green-500 dark:text-green-400 border-green-500/40',
-  },
-];
 
 export function DeliveryPointDetailModal({
   point,
@@ -65,7 +45,7 @@ export function DeliveryPointDetailModal({
     onClose();
   };
 
-  const selectedPriorityOption = priorityOptions.find((opt) => opt.value === priority);
+  const selectedPriorityOption = PRIORITY_OPTIONS.find((opt) => opt.value === priority);
 
   return (
     <>
@@ -109,7 +89,7 @@ export function DeliveryPointDetailModal({
                 Öncelik
               </label>
               <div className="flex gap-2">
-                {priorityOptions.map((option) => {
+                {PRIORITY_OPTIONS.map((option) => {
                   const Icon = option.icon;
                   const isSelected = priority === option.value;
                   return (
