@@ -4,7 +4,6 @@
  */
 
 import type { Coordinates } from '@/types/geocoding.types';
-import { decodePolyline } from '@/lib/polyline-utils';
 
 export interface RouteResponse {
   routes: Array<{
@@ -62,11 +61,6 @@ class RouteService {
     }
   }
 
-  /**
-   * Google Maps encoded polyline'ı decode et
-   * Leaflet için lat/lng array'ine çevirir
-   * Not: decodePolyline fonksiyonu lib/polyline-utils.ts'de tanımlı
-   */
 
   /**
    * Rota özet bilgilerini formatla
