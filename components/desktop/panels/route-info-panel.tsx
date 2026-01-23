@@ -35,9 +35,8 @@ export function RouteInfoPanel({
   // Prop'tan gelen routeInfo'yu kullan
   const routeInfo = propRouteInfo;
 
-  if (!isOpen) return null;
-
   // Öncelik dağılımını hesapla (useMemo ile optimize et)
+  // NOT: Hook'lar conditional return'den ÖNCE olmalı (React Hooks Rules)
   const priorityCounts = useMemo(
     () =>
       deliveryPoints.reduce(
@@ -49,6 +48,9 @@ export function RouteInfoPanel({
       ),
     [deliveryPoints]
   );
+
+  // Conditional return hook'lardan SONRA olmalı
+  if (!isOpen) return null;
 
   // Bilgi kartı component'i
   const InfoCard = ({
