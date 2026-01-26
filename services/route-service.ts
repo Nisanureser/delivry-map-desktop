@@ -44,21 +44,36 @@ class RouteService {
         body: JSON.stringify({ waypoints }),
       });
 
+      // Response'u güvenli şekilde parse et
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error(`API response parse hatası: ${response.status} ${response.statusText}`);
+      }
+
+      // HTTP error durumu
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `API Error: ${response.status}`);
+        const errorMessage = data?.error || data?.message || `API Error: ${response.status}`;
+        throw new Error(errorMessage);
       }
 
-      const data: RouteResponse = await response.json();
-
-      if (data.status !== 'OK') {
-        throw new Error(`Directions API hatası: ${data.status}`);
+      // Google Maps API error durumu (status !== 'OK')
+      if (data.status && data.status !== 'OK') {
+        const errorMessage = data.error_message || data.error || `Directions API hatası: ${data.status}`;
+        throw new Error(errorMessage);
       }
 
-      return data;
+      // Routes kontrolü
+      if (!data.routes || !Array.isArray(data.routes) || data.routes.length === 0) {
+        throw new Error('Rota bulunamadı - Google Maps API boş sonuç döndü');
+      }
+
+      return data as RouteResponse;
     } catch (error) {
-      console.error('Route calculation hatası:', error);
-      return null;
+      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      console.error('Route calculation hatası:', errorMessage, error);
+      throw error; // null döndürmek yerine error fırlat (hook'ta handle edilecek)
     }
   }
 

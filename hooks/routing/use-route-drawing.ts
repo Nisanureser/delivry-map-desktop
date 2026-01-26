@@ -70,10 +70,12 @@ export function useRouteDrawing({
       const waypoints = sortedPoints.map(point => point.coordinates);
 
       // Rota hesapla
+      // calculateRoute artık error fırlatıyor, null döndürmüyor
       const routeData = await routeService.calculateRoute(waypoints);
 
-      if (!routeData || !routeData.routes || routeData.routes.length === 0) {
-        throw new Error('Rota hesaplanamadı');
+      // Double-check (calculateRoute zaten kontrol ediyor ama ekstra güvenlik için)
+      if (!routeData || !routeData.routes || !Array.isArray(routeData.routes) || routeData.routes.length === 0) {
+        throw new Error('Rota hesaplanamadı - API boş sonuç döndü');
       }
 
       // Önceki rotayı temizle

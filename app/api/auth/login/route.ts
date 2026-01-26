@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limit';
+import { sanitizeEmail, sanitizeString, validateBodySize } from '@/lib/input-sanitizer';
+import { createErrorResponse, createValidationError, createTimeoutError, safeLogError } from '@/lib/error-handler';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,69 +17,83 @@ export async function POST(request: NextRequest) {
       return createRateLimitResponse(rateLimitResult.reset);
     }
 
-    const body = await request.json();
+    // Request body'yi oku (sadece bir kez!)
+    let rawBody: string;
+    let body: any;
+    
+    try {
+      rawBody = await request.text();
+      
+      // Body size kontrolü
+      if (!validateBodySize(rawBody, 1024)) { // 1KB limit
+        return createValidationError('Request body too large');
+      }
+      
+      // JSON parse et
+      body = JSON.parse(rawBody);
+    } catch (parseError) {
+      return createValidationError(
+        `Invalid JSON format: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`
+      );
+    }
     
     // Input validation
     if (!body.email || !body.password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      );
+      return createValidationError('Email and password are required');
     }
 
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
+    // Email sanitization ve validation
+    const email = sanitizeEmail(body.email);
+    if (!email) {
+      return createValidationError('Invalid email format');
     }
 
     // Password validation - güçlü şifre gereksinimleri
-    if (body.password.length < 8) {
-      return NextResponse.json(
-        { error: 'Password must be at least 8 characters long' },
-        { status: 400 }
-      );
+    const password = sanitizeString(body.password);
+    if (password.length < 8) {
+      return createValidationError('Password must be at least 8 characters long');
     }
     
     // Şifre uzunluğu kontrolü (DoS saldırılarını önlemek için)
-    if (body.password.length > 128) {
-      return NextResponse.json(
-        { error: 'Password too long' },
-        { status: 400 }
-      );
+    if (password.length > 128) {
+      return createValidationError('Password too long');
     }
-
-    const email = body.email.trim().toLowerCase();
-    const password = body.password;
 
     // Harici API'ye istek at
     const apiUrl = process.env.API_URL;
     
     if (!apiUrl) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('API_URL is not set');
-      }
-      return NextResponse.json(
-        { error: 'Configuration error' },
-        { status: 500 }
+      safeLogError(new Error('API_URL is not set'), 'Login API');
+      return createErrorResponse(
+        new Error('Configuration error'),
+        'Configuration error',
+        500
       );
     }
 
-    // Timeout ekleyin
+    // Timeout ekleyin (5 saniye)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const response = await fetch(`${apiUrl}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeoutId));
+    let response: Response;
+    try {
+      response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return createTimeoutError();
+      }
+      throw fetchError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -90,9 +106,11 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      return NextResponse.json(
-        { error: errorData.error || 'Login failed' },
-        { status: response.status }
+      safeLogError(new Error(`External API error: ${response.status}`), 'Login API');
+      return createErrorResponse(
+        new Error('Login failed'),
+        'Login failed',
+        response.status >= 500 ? 502 : response.status
       );
     }
 
@@ -100,30 +118,39 @@ export async function POST(request: NextRequest) {
 
     // Token varlığını kontrol edin
     if (!data.accessToken || !data.user) {
-      return NextResponse.json(
-        { error: 'Invalid response from auth service' },
-        { status: 502 }
+      safeLogError(new Error('Invalid response from auth service'), 'Login API');
+      return createErrorResponse(
+        new Error('Invalid response from auth service'),
+        'Authentication service error',
+        502
       );
     }
 
     const cookieStore = await cookies();
     
-    // Cookie options'ı bir yerde tanımlayın (DRY)
+    // Cookie options - Production güvenlik ayarları
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
+      secure: isProduction, // HTTPS only in production
+      sameSite: 'lax' as const, // CSRF koruması
       maxAge: 60 * 60 * 24 * 7, // 7 gün
       path: '/',
+      // httpOnly: true için ayrı ayrı set edilecek
     };
 
+    // Auth token - HttpOnly, Secure (production'da)
     cookieStore.set('auth_token', data.accessToken, {
       ...cookieOptions,
-      httpOnly: true,
+      httpOnly: true, // XSS koruması
+      secure: isProduction,
     });
 
+    // User data - HttpOnly değil (client-side'da okunabilir olmalı)
+    // Ancak hassas bilgileri içermemeli
     cookieStore.set('auth_user', JSON.stringify(data.user), {
       ...cookieOptions,
-      httpOnly: false,
+      httpOnly: false, // Client-side'da okunabilir
+      secure: isProduction,
     });
 
     return NextResponse.json({
@@ -133,18 +160,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // AbortError'u handle edin
     if (error instanceof Error && error.name === 'AbortError') {
-      return NextResponse.json(
-        { error: 'Request timeout' },
-        { status: 504 }
-      );
+      return createTimeoutError();
     }
     
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Login API error:', error);
-    }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    safeLogError(error, 'Login API');
+    return createErrorResponse(error, 'Internal server error', 500);
   }
 }

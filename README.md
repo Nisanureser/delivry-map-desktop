@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Teslimat Rota Planlayıcı
 
-## Getting Started
+Next.js tabanlı teslimat noktaları için rota optimizasyonu uygulaması.
 
-First, run the development server:
+## Özellikler
 
+- 🗺️ Harita tabanlı rota planlama
+- 📍 Teslimat noktası yönetimi
+- 🚀 Rota optimizasyonu
+- 🔐 Güvenli authentication sistemi
+- 🔍 Adres arama ve geocoding
+
+## Gereksinimler
+
+- Node.js 18+ 
+- npm, yarn, pnpm veya bun
+
+## Kurulum
+
+1. Repository'yi klonlayın:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd deliver-map-desktop
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Bağımlılıkları yükleyin:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Environment variable'ları ayarlayın:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. `.env.local` dosyasını düzenleyip gerekli API key'leri ve URL'leri girin.
 
-## Learn More
+5. Development server'ı başlatın:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini açın.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Production Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Güvenlik Önlemleri
 
-## Deploy on Vercel
+Proje production için aşağıdaki güvenlik önlemleriyle hazırlanmıştır:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+✅ **Security Headers**: X-Frame-Options, CSP, HSTS, vb.
+✅ **Rate Limiting**: Brute force saldırılarına karşı koruma
+✅ **Input Sanitization**: XSS ve injection saldırılarına karşı koruma
+✅ **Error Handling**: Production'da hassas bilgiler gizlenir
+✅ **Cookie Security**: HttpOnly, Secure, SameSite ayarları
+✅ **CORS Protection**: Allowed origins kontrolü
+✅ **Environment Validation**: Gerekli env variable'ların kontrolü
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Production Checklist
+
+Deployment öncesi kontrol edilmesi gerekenler:
+
+- [ ] `.env.local` dosyasında tüm environment variable'lar dolduruldu
+- [ ] `ALLOWED_ORIGINS` production domain'leri ile güncellendi
+- [ ] Google Maps API key'de domain restriction eklendi
+- [ ] HTTPS sertifikası yapılandırıldı
+- [ ] Rate limiting için Redis kuruldu (opsiyonel, önerilir)
+- [ ] Health check endpoint test edildi: `/api/health`
+- [ ] Error logging/monitoring sistemi kuruldu (Sentry, vb.)
+
+### Build ve Deploy
+
+```bash
+# Production build
+npm run build
+
+# Production server başlat
+npm start
+```
+
+### Environment Variables
+
+Production için gerekli environment variable'lar:
+
+- `NODE_ENV=production`
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` - Google Maps API key
+- `API_URL` - Backend API URL
+- `ADRES_API_URL` - Geocoding API URL
+- `ADRES_API_TOKEN` - Geocoding API token
+- `ALLOWED_ORIGINS` - CORS için izin verilen origin'ler (virgülle ayrılmış)
+
+Detaylı bilgi için `.env.example` dosyasına bakın.
+
+## API Endpoints
+
+### Public Endpoints
+
+- `GET /api/health` - Health check
+- `POST /api/auth/login` - Kullanıcı girişi
+- `GET /api/auth/check` - Auth durumu kontrolü
+- `POST /api/auth/logout` - Kullanıcı çıkışı
+- `GET /api/geocode/search` - Adres arama
+- `GET /api/geocode/reverse` - Koordinat'tan adres
+- `POST /api/route/directions` - Rota hesaplama
+
+## Güvenlik
+
+Tüm API endpoint'leri rate limiting ile korunmaktadır:
+- Login: 5 istek/dakika
+- Geocode: 30 istek/dakika
+- Directions: 20 istek/dakika
+- Auth Check: 60 istek/dakika
+
+## Teknolojiler
+
+- **Framework**: Next.js 16
+- **UI**: React 19, Tailwind CSS
+- **Maps**: Leaflet
+- **Type Safety**: TypeScript
+- **Authentication**: Cookie-based auth
+
+## Lisans
+
+[Lisans bilgisi buraya eklenecek]

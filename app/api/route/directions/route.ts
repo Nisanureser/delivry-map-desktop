@@ -5,6 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, createRateLimitResponse } from '@/lib/rate-limit';
+import { sanitizeCoordinate, validateBodySize } from '@/lib/input-sanitizer';
+import { createErrorResponse, createValidationError, createTimeoutError, safeLogError } from '@/lib/error-handler';
 
 interface DirectionsRequest {
   waypoints: Array<{ lat: number; lng: number }>;
@@ -12,23 +15,74 @@ interface DirectionsRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: DirectionsRequest = await request.json();
+    // Rate limiting - 20 istek / 1 dakika
+    const rateLimitResult = await checkRateLimit(request, {
+      limit: 20,
+      window: '1 m',
+    });
+
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult.reset);
+    }
+
+    // Request body'yi oku (sadece bir kez!)
+    let rawBody: string;
+    let body: DirectionsRequest;
+    
+    try {
+      rawBody = await request.text();
+      
+      // Body size kontrolü
+      if (!validateBodySize(rawBody, 10 * 1024)) { // 10KB limit
+        return createValidationError('Request body too large');
+      }
+      
+      // JSON parse et
+      body = JSON.parse(rawBody) as DirectionsRequest;
+    } catch (parseError) {
+      return createValidationError(
+        `Invalid JSON format: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`
+      );
+    }
+    
     const { waypoints } = body;
 
-    if (!waypoints || waypoints.length < 2) {
-      return NextResponse.json(
-        { error: 'En az 2 waypoint gerekli' },
-        { status: 400 }
-      );
+    if (!waypoints || !Array.isArray(waypoints) || waypoints.length < 2) {
+      return createValidationError('En az 2 waypoint gerekli');
+    }
+
+    // Waypoint limit kontrolü (DoS koruması)
+    if (waypoints.length > 25) {
+      return createValidationError('Maximum 25 waypoints allowed');
+    }
+
+    // Waypoint validation
+    for (const waypoint of waypoints) {
+      if (
+        typeof waypoint !== 'object' ||
+        waypoint === null ||
+        typeof waypoint.lat !== 'number' ||
+        typeof waypoint.lng !== 'number'
+      ) {
+        return createValidationError('Invalid waypoint format');
+      }
+
+      const lat = sanitizeCoordinate(waypoint.lat, -90, 90);
+      const lng = sanitizeCoordinate(waypoint.lng, -180, 180);
+
+      if (lat === null || lng === null) {
+        return createValidationError('Invalid coordinates');
+      }
     }
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     if (!apiKey) {
-      console.error('Google Maps API key bulunamadı');
-      return NextResponse.json(
-        { error: 'Configuration error' },
-        { status: 500 }
+      safeLogError(new Error('Google Maps API key not found'), 'Directions API');
+      return createErrorResponse(
+        new Error('Configuration error'),
+        'Configuration error',
+        500
       );
     }
 
@@ -52,28 +106,50 @@ export async function POST(request: NextRequest) {
     url.searchParams.set('language', 'tr');
     url.searchParams.set('region', 'tr'); // Türkiye yol ağına göre rota
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // Timeout ekle (15 saniye - Google Maps API daha uzun sürebilir)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return createTimeoutError();
+      }
+      throw fetchError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
-      console.error('Google Maps API hatası:', response.status, response.statusText);
-      return NextResponse.json(
-        { error: 'Google Maps API request failed' },
-        { status: response.status }
+      safeLogError(new Error(`Google Maps API error: ${response.status}`), 'Directions API');
+      return createErrorResponse(
+        new Error('Google Maps API request failed'),
+        'External service error',
+        response.status >= 500 ? 502 : response.status
       );
     }
 
     const data = await response.json();
 
     if (data.status !== 'OK') {
-      console.error('Google Maps Directions API hatası:', data.status, data.error_message);
+      safeLogError(
+        new Error(`Google Maps Directions API error: ${data.status}`),
+        'Directions API'
+      );
       return NextResponse.json(
         { 
-          error: data.error_message || 'Directions API hatası',
+          error: process.env.NODE_ENV === 'development' 
+            ? (data.error_message || 'Directions API hatası')
+            : 'Directions API error',
           status: data.status 
         },
         { status: 400 }
@@ -86,10 +162,7 @@ export async function POST(request: NextRequest) {
       status: data.status,
     });
   } catch (error) {
-    console.error('Directions API hatası:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    safeLogError(error, 'Directions API');
+    return createErrorResponse(error, 'Internal server error', 500);
   }
 }
