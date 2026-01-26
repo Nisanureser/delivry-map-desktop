@@ -7,6 +7,8 @@
 
 import { X, ArrowUpDown } from 'lucide-react';
 import { DeliveryPointList } from '../delivery/delivery-point-list';
+import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
+import { ROUTE_TYPE_LABELS } from '@/constants/priorities';
 
 interface DeliveryPointPanelProps {
   isOpen: boolean;
@@ -19,6 +21,8 @@ export function DeliveryPointPanel({
   onClose, 
   title = 'Teslimat Noktaları' 
 }: DeliveryPointPanelProps) {
+  const { routeType } = useDeliveryPoints();
+
   if (!isOpen) return null;
 
   return (
@@ -26,9 +30,11 @@ export function DeliveryPointPanel({
       <div className="glass-modal rounded-2xl shadow-2xl border border-white/30 backdrop-blur-xl overflow-hidden flex flex-col h-[calc(100vh-8rem)]">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/10 dark:bg-black/10">
-          <div className="flex items-center gap-2">
-            {/* <ArrowUpDown className="w-4 h-4 text-muted-foreground" /> */}
+          <div className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            <p className="text-xs text-muted-foreground">
+              Rota Türü: <span className="font-medium text-foreground">{ROUTE_TYPE_LABELS[routeType]}</span>
+            </p>
           </div>
           <button
             onClick={onClose}

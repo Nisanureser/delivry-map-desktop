@@ -8,7 +8,7 @@
 import { X, Route, Clock, MapPin, Navigation, Package } from 'lucide-react';
 import { useMemo } from 'react';
 import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
-import { PRIORITY_LABELS } from '@/constants/priorities';
+import { PRIORITY_LABELS, ROUTE_TYPE_LABELS } from '@/constants/priorities';
 import type { LeafletMap } from '@/types/leaflet';
 
 interface RouteInfoPanelProps {
@@ -30,7 +30,7 @@ export function RouteInfoPanel({
   routeInfo: propRouteInfo,
   title = 'Rota Bilgileri',
 }: RouteInfoPanelProps) {
-  const { deliveryPoints } = useDeliveryPoints();
+  const { deliveryPoints, routeType } = useDeliveryPoints();
   
   // Prop'tan gelen routeInfo'yu kullan
   const routeInfo = propRouteInfo;
@@ -102,9 +102,14 @@ export function RouteInfoPanel({
       <div className="glass-modal rounded-2xl shadow-2xl border border-white/30 backdrop-blur-xl overflow-hidden flex flex-col h-[calc(100vh-8rem)]">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/10 dark:bg-black/10">
-          <div className="flex items-center gap-2">
-            <Route className="w-5 h-5 text-purple-500" />
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Route className="w-5 h-5 text-purple-500" />
+              <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            </div>
+            <p className="text-xs text-muted-foreground ml-7">
+              Rota Türü: <span className="font-medium text-foreground">{ROUTE_TYPE_LABELS[routeType]}</span>
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -121,6 +126,15 @@ export function RouteInfoPanel({
             {routeInfo && (
               <>
                 <div className="space-y-3">
+                  {/* Rota Türü */}
+                  <InfoCard
+                    icon={Route}
+                    label="Rota Türü"
+                    value={ROUTE_TYPE_LABELS[routeType]}
+                    subtitle="Hesaplama yöntemi"
+                    color="text-indigo-500"
+                  />
+
                   {/* Mesafe */}
                   <InfoCard
                     icon={Navigation}
@@ -141,7 +155,7 @@ export function RouteInfoPanel({
 
                   {/* Rota Özeti */}
                   <InfoCard
-                    icon={Route}
+                    icon={MapPin}
                     label="Rota Özeti"
                     value={routeInfo.summary}
                     subtitle="Ana güzergah"

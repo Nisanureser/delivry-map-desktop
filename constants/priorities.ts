@@ -79,3 +79,9 @@ export const PRIORITY_OPTIONS: Array<{
 export const getPriorityOrder = (priority: Priority): number => {
   return PRIORITY_ORDER[priority];
 };
+
+// Rota türü etiketleri
+export const ROUTE_TYPE_LABELS = {
+  priority: 'Öncelik Sırasına Göre',
+  shortest: 'En Kısa Rota',
+} as const;
