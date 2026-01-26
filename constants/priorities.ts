@@ -85,3 +85,9 @@ export const ROUTE_TYPE_LABELS = {
   priority: 'Öncelik Sırasına Göre',
   shortest: 'En Kısa Rota',
 } as const;
+
+// Rota türü renkleri (Polyline çizgisi için)
+export const ROUTE_TYPE_COLORS: Record<'priority' | 'shortest', string> = {
+  priority: '#15803D', // Orange-500 - Öncelik vurgusu için turuncu
+  shortest: '#3b82f6', // Blue-500 - Optimize edilmiş rota için mavi
+};

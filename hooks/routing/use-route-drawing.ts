@@ -18,6 +18,7 @@ import type { RouteType } from '@/contexts/DeliveryPointsContext';
 import routeService from '@/services/route-service';
 import { decodePolyline } from '@/lib/polyline-utils';
 import { useDebounce } from '@/hooks/shared/use-debounce';
+import { ROUTE_TYPE_COLORS } from '@/constants/priorities';
 
 interface UseRouteDrawingOptions {
   map: LeafletMap | null;
@@ -166,9 +167,12 @@ export function useRouteDrawing({
       const decodedPoints =
         allPoints.length > 0 ? allPoints : decodePolyline(route.overview_polyline.points);
 
+      // Rota türüne göre renk seç (currentRouteType zaten yukarıda tanımlı)
+      const routeColor = ROUTE_TYPE_COLORS[currentRouteType];
+
       // Leaflet polyline: smoothFactor 1 = nokta sadeleştirme yok, yol formu korunur
       const polyline = L.polyline(decodedPoints, {
-        color: '#3b82f6',
+        color: routeColor,
         weight: 5,
         opacity: 0.8,
         smoothFactor: 1,
