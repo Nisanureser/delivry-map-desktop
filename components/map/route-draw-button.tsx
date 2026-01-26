@@ -113,6 +113,7 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
             w-14 h-14 rounded-full shadow-lg
             flex items-center justify-center
             transition-all duration-200
+            relative
             ${
               isDisabled
                 ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
@@ -132,7 +133,44 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
           {isDrawing && routeType === 'shortest' ? (
             <Loader2 className="w-6 h-6 text-white animate-spin" />
           ) : (
-            <Route className="w-6 h-6 text-white" />
+            <>
+<Route className="w-5 h-5 text-white z-10 " />
+
+<svg
+  viewBox="0 0 100 100"
+  className="absolute inset-0 w-full h-full animate-spin-slow pointer-events-none"
+  style={{ animationDuration: '10s' }}
+>
+  <defs>
+    <path
+      id="circlePathInside"
+      // d="M50,50 m-25,0 a25,25 0 1,1 50,0 a25,25 0 1,1 -50,0"
+        d="M50,50 m-28,0 a28,28 0 1,1 56,0 a28,28 0 1,1 -56,0"
+      fill="none"
+    />
+  </defs>
+
+  <text
+    fill="white"
+    fontSize="12"
+    fontWeight="700"
+    letterSpacing="0.8"
+    stroke="rgba(0,0,0,0.6)"
+    strokeWidth="0.6"
+    paintOrder="stroke fill"
+  >
+    <textPath
+      href="#circlePathInside"
+      startOffset="50%"
+      textAnchor="middle"
+    >
+      ÖNERİLEN ROTA
+    </textPath>
+  </text>
+</svg>
+
+       
+            </>
           )}
         </button>
 
