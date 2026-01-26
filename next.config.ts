@@ -4,9 +4,10 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    optimizeCss: true,
-  },
+  // CSS optimizasyonu devre dışı (critters dependency sorunu için)
+  // experimental: {
+  //   optimizeCss: true,
+  // },
   // Production güvenlik ayarları
   ...(process.env.NODE_ENV === 'production' && {
     // Source map'leri production'da devre dışı bırak
