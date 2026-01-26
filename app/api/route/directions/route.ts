@@ -11,6 +11,7 @@ import { createErrorResponse, createValidationError, createTimeoutError, safeLog
 
 interface DirectionsRequest {
   waypoints: Array<{ lat: number; lng: number }>;
+  optimize?: boolean; // En kısa rota için optimize et
 }
 
 export async function POST(request: NextRequest) {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { waypoints } = body;
+    const { waypoints, optimize = false } = body;
 
     if (!waypoints || !Array.isArray(waypoints) || waypoints.length < 2) {
       return createValidationError('En az 2 waypoint gerekli');
@@ -87,13 +88,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Waypoint'leri Google Maps formatına çevir
+    // En kısa rota için: Origin = ilk nokta, diğer tüm noktalar waypoint olarak optimize edilir
+    // Öncelik sırasına göre: Origin = ilk nokta, destination = son nokta, ara waypoint'ler optimize edilmez
     const origin = `${waypoints[0].lat},${waypoints[0].lng}`;
-    const destination = `${waypoints[waypoints.length - 1].lat},${waypoints[waypoints.length - 1].lng}`;
     
-    // Ara waypoint'ler varsa ekle
-    const waypointsParam = waypoints.length > 2
-      ? waypoints.slice(1, -1).map(wp => `${wp.lat},${wp.lng}`).join('|')
-      : '';
+    let destination: string;
+    let waypointsParam: string;
+    
+    if (optimize && waypoints.length > 1) {
+      // En kısa rota: Origin = ilk nokta, diğer tüm noktalar waypoint olarak optimize edilir
+      // Google Maps API optimize:true kullanıldığında origin ve destination sabit kalır,
+      // sadece ara waypoint'ler optimize edilir. Ancak kullanıcı tüm noktaların optimize edilmesini istiyor.
+      // Bu yüzden son noktayı da waypoint'lere dahil ediyoruz, böylece optimize edilmiş sıradaki
+      // son nokta destination olarak kullanılabilir.
+      // - Origin: İlk nokta (sabit)
+      // - Waypoints: Diğer tüm noktalar (optimize edilecek, son nokta dahil)
+      // - Destination: Optimize edilmiş sıradaki son nokta (API response'dan alınacak)
+      // Not: API response'da optimize edilmiş sıradaki son waypoint'i destination olarak kullanacağız
+      const allWaypointsExceptOrigin = waypoints.slice(1);
+      destination = `${waypoints[waypoints.length - 1].lat},${waypoints[waypoints.length - 1].lng}`;
+      waypointsParam = allWaypointsExceptOrigin.length > 0
+        ? 'optimize:true|' + allWaypointsExceptOrigin.map(wp => `${wp.lat},${wp.lng}`).join('|')
+        : '';
+    } else {
+      // Öncelik sırasına göre: Origin = ilk nokta, destination = son nokta, ara waypoint'ler optimize edilmez
+      destination = `${waypoints[waypoints.length - 1].lat},${waypoints[waypoints.length - 1].lng}`;
+      waypointsParam = waypoints.length > 2
+        ? waypoints.slice(1, -1).map(wp => `${wp.lat},${wp.lng}`).join('|')
+        : '';
+    }
 
     // Google Maps Directions API URL
     const url = new URL('https://maps.googleapis.com/maps/api/directions/json');
@@ -157,9 +180,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Polyline'ı decode etmek için route'u döndür
+    // Optimize edilmiş rota için waypoint_order bilgisini de döndür
     return NextResponse.json({
       routes: data.routes,
       status: data.status,
+      waypoint_order: data.routes[0]?.waypoint_order || null, // Optimize edilmiş sıra
     });
   } catch (error) {
     safeLogError(error, 'Directions API');

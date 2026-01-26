@@ -13,7 +13,7 @@ import { PRIORITY_BADGE_COLORS } from '@/constants/priorities';
 import type { DeliveryPoint } from '@/types/delivery.types';
 
 export function RoutePills() {
-  const { deliveryPoints } = useDeliveryPoints();
+  const { getSortedDeliveryPoints } = useDeliveryPoints();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -34,10 +34,10 @@ export function RoutePills() {
     );
   }, []);
 
-  // Sıralı teslimat noktaları - useMemo ile optimize et
+  // Route type'a göre sıralanmış teslimat noktaları - useMemo ile optimize et
   const sortedPoints = useMemo(
-    () => [...deliveryPoints].sort((a, b) => (a.order || 0) - (b.order || 0)),
-    [deliveryPoints]
+    () => getSortedDeliveryPoints(),
+    [getSortedDeliveryPoints]
   );
 
   // Scroll fonksiyonları - useCallback ile optimize et

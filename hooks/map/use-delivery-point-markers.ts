@@ -10,13 +10,14 @@
 
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import L from 'leaflet';
 import type { LeafletMap } from '@/types/leaflet';
 import type { DeliveryPoint } from '@/types/delivery.types';
 import { PRIORITY_MARKER_COLORS } from '@/constants/priorities';
 import { DeliveryPointPopup } from '@/components/map/delivery-point-popup';
+import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
 
 interface UseDeliveryPointMarkersOptions {
   map: LeafletMap | null;
@@ -29,6 +30,10 @@ export function useDeliveryPointMarkers({
 }: UseDeliveryPointMarkersOptions) {
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const popupRootsRef = useRef<Map<string, Root>>(new Map());
+  const { getSortedDeliveryPoints } = useDeliveryPoints();
+
+  // Route type'a göre sıralanmış teslimat noktaları
+  const sortedDeliveryPoints = useMemo(() => getSortedDeliveryPoints(), [getSortedDeliveryPoints]);
 
   useEffect(() => {
     if (!map) return;
@@ -60,10 +65,11 @@ export function useDeliveryPointMarkers({
       });
     }, 0);
 
-    // Her teslimat noktası için marker oluştur
-    deliveryPoints.forEach((point) => {
+    // Her teslimat noktası için marker oluştur (sıralanmış sıraya göre)
+    sortedDeliveryPoints.forEach((point, index) => {
       const { lat, lng } = point.coordinates;
-      const order = point.order || 1;
+      // Rotaya göre sıralanmış noktaların index'ini kullan (1'den başlayarak)
+      const order = index + 1;
 
       // Önceliğe göre renk belirle
       const color = PRIORITY_MARKER_COLORS[point.priority] || PRIORITY_MARKER_COLORS.normal;
@@ -97,7 +103,9 @@ export function useDeliveryPointMarkers({
       // Popup container oluştur
       const popupContainer = document.createElement('div');
       const popupRoot = createRoot(popupContainer);
-      popupRoot.render(React.createElement(DeliveryPointPopup, { point }));
+      // Rotaya göre sıralanmış noktaların index'ini point'e ekle
+      const pointWithRouteOrder = { ...point, order };
+      popupRoot.render(React.createElement(DeliveryPointPopup, { point: pointWithRouteOrder }));
       popupRootsRef.current.set(point.id, popupRoot);
 
       // Popup'ı marker'a bağla
@@ -137,7 +145,7 @@ export function useDeliveryPointMarkers({
         });
       }, 0);
     };
-  }, [map, deliveryPoints]);
+  }, [map, sortedDeliveryPoints]);
 
   return {
     markers: markersRef.current,

@@ -12,9 +12,12 @@ import { DeliveryPointDetailModal } from './delivery-point-detail-modal';
 import type { DeliveryPoint, Priority } from '@/types/delivery.types';
 
 export function DeliveryPointList() {
-  const { deliveryPoints, removeDeliveryPoint, updateDeliveryPoint } = useDeliveryPoints();
+  const { getSortedDeliveryPoints, removeDeliveryPoint, updateDeliveryPoint } = useDeliveryPoints();
   const [selectedPoint, setSelectedPoint] = useState<DeliveryPoint | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Route type'a göre sıralanmış teslimat noktaları
+  const sortedDeliveryPoints = getSortedDeliveryPoints();
 
   // Düzenleme handler'ı
   const handleEdit = (point: DeliveryPoint) => {
@@ -37,7 +40,7 @@ export function DeliveryPointList() {
     <div className="flex flex-col h-full">
       {/* Liste İçeriği */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {deliveryPoints.length === 0 ? (
+        {sortedDeliveryPoints.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             {/* Empty State Icon */}
             <div className="w-16 h-16 rounded-full bg-linear-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center mb-4">
@@ -63,10 +66,10 @@ export function DeliveryPointList() {
             </p>
           </div>
         ) : (
-          deliveryPoints.map((point) => (
+          sortedDeliveryPoints.map((point, index) => (
             <DeliveryPointCard
               key={point.id}
-              point={point}
+              point={{ ...point, order: index + 1 }} // Rotaya göre sıralanmış noktaların index'ini kullan
               onEdit={handleEdit}
               onDelete={removeDeliveryPoint}
             />

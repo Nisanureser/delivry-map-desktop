@@ -24,13 +24,18 @@ export interface RouteResponse {
 
 export interface RouteRequest {
   waypoints: Coordinates[];
+  optimize?: boolean;
+}
+
+export interface RouteResponseWithOrder extends RouteResponse {
+  waypoint_order?: number[] | null;
 }
 
 class RouteService {
   /**
    * Teslimat noktalarına göre rota hesapla
    */
-  async calculateRoute(waypoints: Coordinates[]): Promise<RouteResponse | null> {
+  async calculateRoute(waypoints: Coordinates[], optimize: boolean = false): Promise<RouteResponseWithOrder | null> {
     try {
       if (waypoints.length < 2) {
         throw new Error('En az 2 waypoint gerekli');
@@ -41,7 +46,7 @@ class RouteService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ waypoints }),
+        body: JSON.stringify({ waypoints, optimize }),
       });
 
       // Response'u güvenli şekilde parse et
@@ -69,7 +74,7 @@ class RouteService {
         throw new Error('Rota bulunamadı - Google Maps API boş sonuç döndü');
       }
 
-      return data as RouteResponse;
+      return data as RouteResponseWithOrder;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
       console.error('Route calculation hatası:', errorMessage, error);
