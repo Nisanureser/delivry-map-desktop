@@ -4,39 +4,51 @@
  * Haritanın sağ alt köşesinde konumlandırılmış
  */
 
-'use client';
+"use client";
 
-import { Send, Loader2, Route } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useRouteDrawing } from '@/hooks/routing';
-import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
-import type { LeafletMap } from '@/types/leaflet';
+import { Send, Loader2, Route } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouteDrawing } from "@/hooks/routing";
+import { useDeliveryPoints } from "@/contexts/DeliveryPointsContext";
+import type { LeafletMap } from "@/types/leaflet";
 
 interface RouteDrawButtonProps {
   map: LeafletMap | null;
-  onRouteInfoChange?: (routeInfo: {
-    distance: string;
-    duration: string;
-    summary: string;
-  } | null) => void;
+  onRouteInfoChange?: (
+    routeInfo: {
+      distance: string;
+      duration: string;
+      summary: string;
+    } | null,
+  ) => void;
 }
 
-export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps) {
-  const { deliveryPoints, routeType, setRouteType, applyOptimizedOrder, getSortedDeliveryPoints } = useDeliveryPoints();
-  const { isDrawing, error, drawRoute, clearRoute, routeInfo } = useRouteDrawing({
-    map,
+export function RouteDrawButton({
+  map,
+  onRouteInfoChange,
+}: RouteDrawButtonProps) {
+  const {
     deliveryPoints,
     routeType,
+    setRouteType,
+    applyOptimizedOrder,
     getSortedDeliveryPoints,
-    onOptimizedOrder: (order) => {
-      // Optimize edilmiş sırayı uygula
-      applyOptimizedOrder(order);
-    },
-    onRouteCleared: () => {
-      // Rota temizlendiğinde callback
-    },
-    enabled: true,
-  });
+  } = useDeliveryPoints();
+  const { isDrawing, error, drawRoute, clearRoute, routeInfo } =
+    useRouteDrawing({
+      map,
+      deliveryPoints,
+      routeType,
+      getSortedDeliveryPoints,
+      onOptimizedOrder: (order, orderRouteType) => {
+        // Optimize edilmiş sırayı doğru rota tipi ile uygula (setRouteType async)
+        applyOptimizedOrder(order, orderRouteType);
+      },
+      onRouteCleared: () => {
+        // Rota temizlendiğinde callback
+      },
+      enabled: true,
+    });
 
   // RouteInfo değiştiğinde parent'a bildir
   useEffect(() => {
@@ -52,12 +64,12 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
 
   // Öncelik sırasına göre rota çiz
   const handlePriorityRoute = async () => {
-    if (routeType !== 'priority') {
-      setRouteType('priority');
+    if (routeType !== "priority") {
+      setRouteType("priority");
       clearRoute();
       // Yeni routeType ile direkt çiz (overrideRouteType parametresi ile)
       if (deliveryPoints.length >= 2) {
-        await drawRoute('priority');
+        await drawRoute("priority");
       }
     } else {
       // Aynı tip seçiliyse toggle et
@@ -73,12 +85,12 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
 
   // En kısa rota çiz
   const handleShortestRoute = async () => {
-    if (routeType !== 'shortest') {
-      setRouteType('shortest');
+    if (routeType !== "shortest") {
+      setRouteType("shortest");
       clearRoute();
       // Yeni routeType ile direkt çiz (overrideRouteType parametresi ile)
       if (deliveryPoints.length >= 2) {
-        await drawRoute('shortest');
+        await drawRoute("shortest");
       }
     } else {
       // Aynı tip seçiliyse toggle et
@@ -106,7 +118,7 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
         {/* En Kısa Rota Butonu */}
         <button
           onClick={handleShortestRoute}
-          onMouseEnter={() => setShowTooltip('EN KISA ROTA')}
+          onMouseEnter={() => setShowTooltip("EN KISA ROTA")}
           onMouseLeave={() => setShowTooltip(null)}
           disabled={isDisabled}
           className={`
@@ -116,60 +128,58 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
             relative
             ${
               isDisabled
-                ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
-                : routeType === 'shortest' && routeInfo
-                ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 cursor-pointer hover:scale-105 active:scale-95'
-                : 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700 cursor-pointer hover:scale-105 active:scale-95'
+                ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
+                : routeType === "shortest" && routeInfo
+                  ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 cursor-pointer hover:scale-105 active:scale-95"
+                  : "bg-blue-500 hover:bg-blue-600 active:bg-blue-700 cursor-pointer hover:scale-105 active:scale-95"
             }
           `}
           title={
             deliveryPoints.length < 2 && !routeInfo
-              ? 'En az 2 teslimat noktası gerekli'
-              : routeType === 'shortest' && routeInfo
-              ? 'Rotayı Kapat'
-              : 'En Kısa Rota Çiz'
+              ? "En az 2 teslimat noktası gerekli"
+              : routeType === "shortest" && routeInfo
+                ? "Rotayı Kapat"
+                : "En Kısa Rota Çiz"
           }
         >
-          {isDrawing && routeType === 'shortest' ? (
+          {isDrawing && routeType === "shortest" ? (
             <Loader2 className="w-6 h-6 text-white animate-spin" />
           ) : (
             <>
-<Route className="w-5 h-5 text-white z-10 " />
+              <Route className="w-5 h-5 text-white z-10 " />
 
-<svg
-  viewBox="0 0 100 100"
-  className="absolute inset-0 w-full h-full animate-spin-slow pointer-events-none"
-  style={{ animationDuration: '10s' }}
->
-  <defs>
-    <path
-      id="circlePathInside"
-      // d="M50,50 m-25,0 a25,25 0 1,1 50,0 a25,25 0 1,1 -50,0"
-        d="M50,50 m-28,0 a28,28 0 1,1 56,0 a28,28 0 1,1 -56,0"
-      fill="none"
-    />
-  </defs>
+              <svg
+                viewBox="0 0 100 100"
+                className="absolute inset-0 w-full h-full animate-spin-slow pointer-events-none"
+                style={{ animationDuration: "10s" }}
+              >
+                <defs>
+                  <path
+                    id="circlePathInside"
+                    // d="M50,50 m-25,0 a25,25 0 1,1 50,0 a25,25 0 1,1 -50,0"
+                    d="M50,50 m-28,0 a28,28 0 1,1 56,0 a28,28 0 1,1 -56,0"
+                    fill="none"
+                  />
+                </defs>
 
-  <text
-    fill="white"
-    fontSize="12"
-    fontWeight="700"
-    letterSpacing="0.8"
-    stroke="rgba(0,0,0,0.6)"
-    strokeWidth="0.6"
-    paintOrder="stroke fill"
-  >
-    <textPath
-      href="#circlePathInside"
-      startOffset="50%"
-      textAnchor="middle"
-    >
-      ÖNERİLEN ROTA
-    </textPath>
-  </text>
-</svg>
-
-       
+                <text
+                  fill="white"
+                  fontSize="12"
+                  fontWeight="700"
+                  letterSpacing="0.8"
+                  stroke="rgba(0,0,0,0.6)"
+                  strokeWidth="0.6"
+                  paintOrder="stroke fill"
+                >
+                  <textPath
+                    href="#circlePathInside"
+                    startOffset="50%"
+                    textAnchor="middle"
+                  >
+                    ÖNERİLEN ROTA
+                  </textPath>
+                </text>
+              </svg>
             </>
           )}
         </button>
@@ -177,7 +187,7 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
         {/* Öncelik Sırasına Göre Rota Butonu */}
         <button
           onClick={handlePriorityRoute}
-          onMouseEnter={() => setShowTooltip('ÖNCELİK SIRASINA GÖRE')}
+          onMouseEnter={() => setShowTooltip("ÖNCELİK SIRASINA GÖRE")}
           onMouseLeave={() => setShowTooltip(null)}
           disabled={isDisabled}
           className={`
@@ -186,21 +196,21 @@ export function RouteDrawButton({ map, onRouteInfoChange }: RouteDrawButtonProps
             transition-all duration-200
             ${
               isDisabled
-                ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
-                : routeType === 'priority' && routeInfo
-                ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 cursor-pointer hover:scale-105 active:scale-95'
-                : 'bg-green-500 hover:bg-green-600 active:bg-green-700 cursor-pointer hover:scale-105 active:scale-95'
+                ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
+                : routeType === "priority" && routeInfo
+                  ? "bg-green-600 hover:bg-green-700 active:bg-green-800 cursor-pointer hover:scale-105 active:scale-95"
+                  : "bg-green-500 hover:bg-green-600 active:bg-green-700 cursor-pointer hover:scale-105 active:scale-95"
             }
           `}
           title={
             deliveryPoints.length < 2 && !routeInfo
-              ? 'En az 2 teslimat noktası gerekli'
-              : routeType === 'priority' && routeInfo
-              ? 'Rotayı Kapat'
-              : 'Öncelik Sırasına Göre Rota Çiz'
+              ? "En az 2 teslimat noktası gerekli"
+              : routeType === "priority" && routeInfo
+                ? "Rotayı Kapat"
+                : "Öncelik Sırasına Göre Rota Çiz"
           }
         >
-          {isDrawing && routeType === 'priority' ? (
+          {isDrawing && routeType === "priority" ? (
             <Loader2 className="w-6 h-6 text-white animate-spin" />
           ) : (
             <Send className="w-6 h-6 text-white" />
