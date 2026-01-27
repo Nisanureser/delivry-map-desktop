@@ -31,6 +31,7 @@ interface DeliveryPointsContextType {
   addDeliveryPoint: (location: LocationInfo, priority?: Priority) => void;
   removeDeliveryPoint: (id: string) => void;
   updateDeliveryPoint: (id: string, updates: Partial<DeliveryPoint>) => void;
+  reorderWithinPriority: (activeId: string, overId: string) => void;
   getDeliveryPointsByPriority: (priority: Priority) => DeliveryPoint[];
   clearAll: () => void;
   getSortedDeliveryPoints: (overrideRouteType?: RouteType) => DeliveryPoint[];
@@ -48,31 +49,33 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
   const [deliveryPoints, setDeliveryPoints] = useState<DeliveryPoint[]>([]);
   const [routeType, setRouteType] = useState<RouteType>("priority");
 
-  // Teslimat noktalarını önceliğe göre sırala ve order'ları güncelle
-  const sortAndReorderPoints = useCallback(
+  const getPriorityStableOrder = useCallback((point: DeliveryPoint) => {
+    return point.prioritySortOrder ?? point.createdOrder ?? point.order ?? 0;
+  }, []);
+
+  const sortForPriorityRoute = useCallback(
     (points: DeliveryPoint[]): DeliveryPoint[] => {
-      // Önceliğe göre sırala (high -> normal -> low)
-      // Aynı öncelik içinde mevcut order'a göre sırala
-      const sorted = [...points].sort((a, b) => {
+      return [...points].sort((a, b) => {
         const priorityDiff =
           getPriorityOrder(a.priority) - getPriorityOrder(b.priority);
-        if (priorityDiff !== 0) {
-          return priorityDiff;
-        }
-        // Aynı öncelikte, stable eklenme sırasına göre sırala (optimize edilmiş rota order'ı burada kullanılmaz)
-        const aStable = a.createdOrder ?? a.order ?? 0;
-        const bStable = b.createdOrder ?? b.order ?? 0;
-        return aStable - bStable;
-      });
+        if (priorityDiff !== 0) return priorityDiff;
 
-      // Order'ları yeniden düzenle (1'den başlayarak)
-      return sorted.map((point, index) => ({
-        ...point,
-        order: index + 1,
-      }));
+        return getPriorityStableOrder(a) - getPriorityStableOrder(b);
+      });
     },
-    [],
+    [getPriorityStableOrder],
   );
+
+  const sortForShortestRoute = useCallback((points: DeliveryPoint[]) => {
+    return [...points].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, []);
+
+  const arrayMove = useCallback(<T,>(items: T[], from: number, to: number) => {
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  }, []);
 
   // Optimize edilmiş sırayı delivery point'lere uygula
   // optimizedWaypointOrder: [0, 2, 1, 3] gibi - tüm noktaların optimize edilmiş sırası
@@ -84,8 +87,9 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
         let currentSorted: DeliveryPoint[];
 
         if (sourceRouteType === "priority") {
-          // Önceliğe göre sıralı
-          currentSorted = sortAndReorderPoints(prev);
+          // Güvenlik: optimize sadece "shortest" için kullanılıyor.
+          // Yanlışlıkla çağrılırsa mevcut sırayı bozma.
+          currentSorted = sortForPriorityRoute(prev);
         } else {
           // En kısa rota için: stable eklenme sırasına göre baz al (hook'taki waypoint dizilimi ile aynı)
           currentSorted = [...prev].sort((a, b) => {
@@ -107,7 +111,7 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
         }));
       });
     },
-    [sortAndReorderPoints],
+    [sortForPriorityRoute],
   );
 
   // Route type'a göre sıralanmış teslimat noktalarını döndür
@@ -120,15 +124,13 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
       // Bu sayede önceki rotanın bilgileri kullanılmaz
       if (currentRouteType === "priority") {
         // Önceliğe göre sıralı (mevcut mantık)
-        return sortAndReorderPoints(deliveryPoints);
+        return sortForPriorityRoute(deliveryPoints);
       } else {
         // En kısa rota için - order'a göre sırala
-        return [...deliveryPoints].sort(
-          (a, b) => (a.order || 0) - (b.order || 0),
-        );
+        return sortForShortestRoute(deliveryPoints);
       }
     },
-    [deliveryPoints, routeType, sortAndReorderPoints],
+    [deliveryPoints, routeType, sortForPriorityRoute, sortForShortestRoute],
   );
 
   // Teslimat noktası ekle
@@ -152,47 +154,105 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
 
       setDeliveryPoints((prev) => {
         const nextCreatedOrder =
+          prev.reduce((max, p) => Math.max(max, p.createdOrder ?? 0), 0) + 1;
+
+        const nextPrioritySortOrder =
+          prev
+            .filter((p) => p.priority === priority)
+            .reduce((max, p) => Math.max(max, p.prioritySortOrder ?? 0), 0) + 1;
+
+        const nextOrder =
           prev.reduce(
-            (max, p) => Math.max(max, p.createdOrder ?? p.order ?? 0),
+            (max, p) => Math.max(max, p.order ?? p.createdOrder ?? 0),
             0,
           ) + 1;
 
         const newPoint: DeliveryPoint = {
           ...newPointBase,
           createdOrder: nextCreatedOrder,
-          order: nextCreatedOrder,
+          prioritySortOrder: nextPrioritySortOrder,
+          order: nextOrder,
         };
 
-        const updated = [...prev, newPoint];
-        return sortAndReorderPoints(updated);
+        return [...prev, newPoint];
       });
     },
-    [sortAndReorderPoints],
+    [],
   );
 
   // Teslimat noktası sil
-  const removeDeliveryPoint = useCallback(
-    (id: string) => {
-      setDeliveryPoints((prev) => {
-        const filtered = prev.filter((point) => point.id !== id);
-        return sortAndReorderPoints(filtered);
-      });
-    },
-    [sortAndReorderPoints],
-  );
+  const removeDeliveryPoint = useCallback((id: string) => {
+    setDeliveryPoints((prev) => {
+      return prev.filter((point) => point.id !== id);
+    });
+  }, []);
 
   // Teslimat noktası güncelle
   const updateDeliveryPoint = useCallback(
     (id: string, updates: Partial<DeliveryPoint>) => {
       setDeliveryPoints((prev) => {
-        const updated = prev.map((point) =>
-          point.id === id ? { ...point, ...updates } : point,
+        const current = prev.find((p) => p.id === id);
+        if (!current) return prev;
+
+        const nextPriority = (updates.priority ?? current.priority) as Priority;
+        const priorityChanged = nextPriority !== current.priority;
+
+        const nextPrioritySortOrder = priorityChanged
+          ? prev
+              .filter((p) => p.priority === nextPriority)
+              .reduce((max, p) => Math.max(max, p.prioritySortOrder ?? 0), 0) +
+            1
+          : current.prioritySortOrder;
+
+        return prev.map((point) =>
+          point.id === id
+            ? {
+                ...point,
+                ...updates,
+                priority: nextPriority,
+                prioritySortOrder: nextPrioritySortOrder,
+              }
+            : point,
         );
-        // Öncelik değiştiyse veya her durumda sıralama yap
-        return sortAndReorderPoints(updated);
       });
     },
-    [sortAndReorderPoints],
+    [],
+  );
+
+  const reorderWithinPriority = useCallback(
+    (activeId: string, overId: string) => {
+      if (activeId === overId) return;
+
+      setDeliveryPoints((prev) => {
+        const active = prev.find((p) => p.id === activeId);
+        const over = prev.find((p) => p.id === overId);
+        if (!active || !over) return prev;
+        if (active.priority !== over.priority) return prev;
+
+        const priority = active.priority;
+        const groupSorted = prev
+          .filter((p) => p.priority === priority)
+          .sort(
+            (a, b) => getPriorityStableOrder(a) - getPriorityStableOrder(b),
+          );
+
+        const fromIndex = groupSorted.findIndex((p) => p.id === activeId);
+        const toIndex = groupSorted.findIndex((p) => p.id === overId);
+        if (fromIndex === -1 || toIndex === -1) return prev;
+
+        const moved = arrayMove(groupSorted, fromIndex, toIndex);
+        const nextOrderById = new Map(
+          moved.map((p, index) => [p.id, index + 1] as const),
+        );
+
+        return prev.map((p) =>
+          p.priority === priority
+            ? { ...p, prioritySortOrder: nextOrderById.get(p.id) }
+            : p,
+        );
+      });
+    },
+    [arrayMove, getPriorityStableOrder],
   );
 
   // Önceliğe göre filtrele
@@ -217,6 +277,7 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
       addDeliveryPoint,
       removeDeliveryPoint,
       updateDeliveryPoint,
+      reorderWithinPriority,
       getDeliveryPointsByPriority,
       clearAll,
       getSortedDeliveryPoints,
@@ -228,6 +289,7 @@ export function DeliveryPointsProvider({ children }: { children: ReactNode }) {
       addDeliveryPoint,
       removeDeliveryPoint,
       updateDeliveryPoint,
+      reorderWithinPriority,
       getDeliveryPointsByPriority,
       clearAll,
       getSortedDeliveryPoints,

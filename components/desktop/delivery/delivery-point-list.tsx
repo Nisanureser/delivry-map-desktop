@@ -1,23 +1,102 @@
 /**
  * Delivery Point List Component
- * Teslimat noktaları listesi 
+ * Teslimat noktaları listesi
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useDeliveryPoints } from '@/contexts/DeliveryPointsContext';
-import { DeliveryPointCard } from './delivery-point-card';
-import { DeliveryPointDetailModal } from './delivery-point-detail-modal';
-import type { DeliveryPoint, Priority } from '@/types/delivery.types';
+import { useState, type CSSProperties } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useDeliveryPoints } from "@/contexts/DeliveryPointsContext";
+import { DeliveryPointCard } from "./delivery-point-card";
+import { DeliveryPointDetailModal } from "./delivery-point-detail-modal";
+import type { DeliveryPoint, Priority } from "@/types/delivery.types";
+
+function SortableDeliveryPointItem({
+  point,
+  order,
+  onEdit,
+  onDelete,
+}: {
+  point: DeliveryPoint;
+  order: number;
+  onEdit: (point: DeliveryPoint) => void;
+  onDelete: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: point.id });
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.75 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className={isDragging ? "z-50" : ""}>
+      <DeliveryPointCard
+        point={{ ...point, order }}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        dragEnabled
+        dragHandleRef={setActivatorNodeRef}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  );
+}
 
 export function DeliveryPointList() {
-  const { getSortedDeliveryPoints, removeDeliveryPoint, updateDeliveryPoint } = useDeliveryPoints();
-  const [selectedPoint, setSelectedPoint] = useState<DeliveryPoint | null>(null);
+  const {
+    getSortedDeliveryPoints,
+    removeDeliveryPoint,
+    updateDeliveryPoint,
+    routeType,
+    reorderWithinPriority,
+  } = useDeliveryPoints();
+  const [selectedPoint, setSelectedPoint] = useState<DeliveryPoint | null>(
+    null,
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Route type'a göre sıralanmış teslimat noktaları
   const sortedDeliveryPoints = getSortedDeliveryPoints();
+  const isPriorityMode = routeType === "priority";
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!isPriorityMode) return;
+
+    const { active, over } = event;
+    if (!over) return;
+
+    reorderWithinPriority(String(active.id), String(over.id));
+  };
 
   // Düzenleme handler'ı
   const handleEdit = (point: DeliveryPoint) => {
@@ -26,7 +105,10 @@ export function DeliveryPointList() {
   };
 
   // Modal kaydetme handler'ı
-  const handleSave = (id: string, updates: { priority: Priority; notes?: string }) => {
+  const handleSave = (
+    id: string,
+    updates: { priority: Priority; notes?: string },
+  ) => {
     updateDeliveryPoint(id, updates);
   };
 
@@ -39,7 +121,7 @@ export function DeliveryPointList() {
   return (
     <div className="flex flex-col h-full">
       {/* Liste İçeriği */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4">
         {sortedDeliveryPoints.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             {/* Empty State Icon */}
@@ -65,15 +147,40 @@ export function DeliveryPointList() {
               Teslimat noktalarınızı ekleyerek rota planlamaya başlayın
             </p>
           </div>
+        ) : isPriorityMode ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sortedDeliveryPoints.map((p) => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {sortedDeliveryPoints.map((point, index) => (
+                  <SortableDeliveryPointItem
+                    key={point.id}
+                    point={point}
+                    order={index + 1}
+                    onEdit={handleEdit}
+                    onDelete={removeDeliveryPoint}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : (
-          sortedDeliveryPoints.map((point, index) => (
-            <DeliveryPointCard
-              key={point.id}
-              point={{ ...point, order: index + 1 }} // Rotaya göre sıralanmış noktaların index'ini kullan
-              onEdit={handleEdit}
-              onDelete={removeDeliveryPoint}
-            />
-          ))
+          <div className="space-y-3">
+            {sortedDeliveryPoints.map((point, index) => (
+              <DeliveryPointCard
+                key={point.id}
+                point={{ ...point, order: index + 1 }}
+                onEdit={handleEdit}
+                onDelete={removeDeliveryPoint}
+              />
+            ))}
+          </div>
         )}
       </div>
 

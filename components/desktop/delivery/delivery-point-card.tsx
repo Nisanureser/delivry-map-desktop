@@ -3,29 +3,63 @@
  * Teslimat noktası kartı - Resimdeki tasarıma uygun
  */
 
-'use client';
+"use client";
 
-import { MapPin, Edit, Trash2 } from 'lucide-react';
-import type { DeliveryPoint } from '@/types/delivery.types';
+import type { ButtonHTMLAttributes } from "react";
+import { MapPin, Edit, Trash2, GripVertical } from "lucide-react";
+import type { DeliveryPoint } from "@/types/delivery.types";
 import {
   PRIORITY_LABELS,
   PRIORITY_CARD_COLORS,
   PRIORITY_BADGE_COLORS,
-} from '@/constants/priorities';
+} from "@/constants/priorities";
 
 interface DeliveryPointCardProps {
   point: DeliveryPoint;
   onEdit?: (point: DeliveryPoint) => void;
   onDelete?: (id: string) => void;
+  dragEnabled?: boolean;
+  dragHandleRef?: (node: HTMLButtonElement | null) => void;
+  dragHandleProps?: ButtonHTMLAttributes<HTMLButtonElement>;
 }
 
-export function DeliveryPointCard({ point, onEdit, onDelete }: DeliveryPointCardProps) {
+export function DeliveryPointCard({
+  point,
+  onEdit,
+  onDelete,
+  dragEnabled,
+  dragHandleRef,
+  dragHandleProps,
+}: DeliveryPointCardProps) {
+  const dragButtonClassName = [
+    "p-1 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-white/10 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing",
+    dragHandleProps?.className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="group relative bg-white/10 dark:bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 dark:hover:bg-white/10 transition-all duration-200">
       <div className="flex items-start gap-3">
-        {/* Sol: Numara Badge - Öncelik rengine göre */}
-        <div className={`w-6 h-6 rounded-full ${PRIORITY_BADGE_COLORS[point.priority]} flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-md border-2 border-white`}>
-          {point.order || 1}
+        {/* Sol: Drag handle (opsiyonel) + Numara Badge */}
+        <div className="flex items-center gap-1 shrink-0">
+          {dragEnabled && (
+            <button
+              ref={dragHandleRef}
+              {...dragHandleProps}
+              className={dragButtonClassName}
+              title={dragHandleProps?.title ?? "Sürükle ve sırala"}
+              aria-label="Sürükle ve sırala"
+            >
+              <GripVertical className="w-4 h-4" />
+            </button>
+          )}
+
+          <div
+            className={`w-6 h-6 rounded-full ${PRIORITY_BADGE_COLORS[point.priority]} flex items-center justify-center text-white font-bold text-xs shadow-md border-2 border-white`}
+          >
+            {point.order || 1}
+          </div>
         </div>
 
         {/* Orta: Başlık ve Adres */}
@@ -34,7 +68,7 @@ export function DeliveryPointCard({ point, onEdit, onDelete }: DeliveryPointCard
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <h4 className="text-sm font-medium text-foreground truncate">
-              {point.name || 'Adres Başlığı'}
+              {point.name || "Adres Başlığı"}
             </h4>
           </div>
           {/* Adres İçeriği */}
@@ -46,10 +80,12 @@ export function DeliveryPointCard({ point, onEdit, onDelete }: DeliveryPointCard
         {/* Sağ: Öncelik ve Action Buttons */}
         <div className="flex flex-col items-end gap-2 shrink-0">
           {/* Öncelik Etiketi */}
-          <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${PRIORITY_CARD_COLORS[point.priority]}`}>
+          <span
+            className={`px-2 py-0.5 rounded-md text-xs font-medium border ${PRIORITY_CARD_COLORS[point.priority]}`}
+          >
             {PRIORITY_LABELS[point.priority]}
           </span>
-          
+
           {/* Action Buttons */}
           <div className="flex items-center gap-1">
             {onEdit && (
