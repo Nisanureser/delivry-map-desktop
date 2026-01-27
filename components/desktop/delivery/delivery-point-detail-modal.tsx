@@ -4,12 +4,12 @@
  * Öncelik ve not düzenleme
  */
 
-'use client';
+"use client";
 
-import { X, Check, MapPin, FileText } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import type { DeliveryPoint, Priority } from '@/types/delivery.types';
-import { PRIORITY_OPTIONS } from '@/constants/priorities';
+import { X, Check, MapPin, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import type { DeliveryPoint, Priority } from "@/types/delivery.types";
+import { PRIORITY_OPTIONS } from "@/constants/priorities";
 
 interface DeliveryPointDetailModalProps {
   point: DeliveryPoint | null;
@@ -24,14 +24,19 @@ export function DeliveryPointDetailModal({
   onClose,
   onSave,
 }: DeliveryPointDetailModalProps) {
-  const [priority, setPriority] = useState<Priority>('normal');
-  const [notes, setNotes] = useState('');
+  const [priority, setPriority] = useState<Priority>("normal");
+  const [notes, setNotes] = useState("");
+
+  const sectionTitleClass =
+    "text-xs font-semibold tracking-wide text-purple-700/90 dark:text-purple-300";
+  const sectionIconClass =
+    "w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0";
 
   // Point değiştiğinde form'u güncelle
   useEffect(() => {
     if (point) {
       setPriority(point.priority);
-      setNotes(point.notes || '');
+      setNotes(point.notes || "");
     }
   }, [point]);
 
@@ -44,8 +49,6 @@ export function DeliveryPointDetailModal({
     });
     onClose();
   };
-
-  const selectedPriorityOption = PRIORITY_OPTIONS.find((opt) => opt.value === priority);
 
   return (
     <>
@@ -63,7 +66,9 @@ export function DeliveryPointDetailModal({
         >
           {/* Header */}
           <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/10 dark:bg-black/10">
-            <h2 className="text-lg font-semibold text-foreground">Teslimat Noktası Detayı</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Teslimat Noktası Detayı
+            </h2>
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -75,17 +80,25 @@ export function DeliveryPointDetailModal({
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-5 space-y-5">
             {/* Adres Bilgisi (Read-only) */}
-            <div className="group p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                <p className="text-xs font-medium text-muted-foreground">Adres</p>
+            <div>
+              <p className={`block mb-2 ${sectionTitleClass}`}>Adres</p>
+              <div className="relative">
+                <div className="absolute left-3 top-3 pointer-events-none">
+                  <MapPin className={sectionIconClass} />
+                </div>
+                <textarea
+                  readOnly
+                  value={point.address}
+                  rows={2}
+                  tabIndex={-1}
+                  className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 outline-none text-sm text-foreground resize-none transition-all cursor-default"
+                />
               </div>
-              <p className="text-sm text-foreground leading-relaxed">{point.address}</p>
             </div>
 
             {/* Öncelik Seçimi */}
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-3">
+              <label className={`block mb-3 ${sectionTitleClass}`}>
                 Öncelik
               </label>
               <div className="flex gap-2">
@@ -99,21 +112,17 @@ export function DeliveryPointDetailModal({
                       className={`flex-1 px-4 py-2.5 rounded-lg border transition-all duration-200 flex items-center justify-center gap-2 ${
                         isSelected
                           ? `${option.color} border-current shadow-sm scale-[1.02]`
-                          : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                       }`}
                     >
                       <Icon
                         className={`w-4 h-4 ${
-                          isSelected
-                            ? 'text-current'
-                            : 'text-muted-foreground'
+                          isSelected ? "text-current" : "text-muted-foreground"
                         }`}
                       />
                       <span
                         className={`text-xs font-medium ${
-                          isSelected
-                            ? 'text-current'
-                            : 'text-muted-foreground'
+                          isSelected ? "text-current" : "text-muted-foreground"
                         }`}
                       >
                         {option.label}
@@ -128,13 +137,13 @@ export function DeliveryPointDetailModal({
             <div>
               <label
                 htmlFor="notes"
-                className="block text-xs font-medium text-muted-foreground mb-2"
+                className={`block mb-2 ${sectionTitleClass}`}
               >
                 Not / Açıklama
               </label>
               <div className="relative">
                 <div className="absolute left-3 top-3 pointer-events-none">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <FileText className={sectionIconClass} />
                 </div>
                 <textarea
                   id="notes"
